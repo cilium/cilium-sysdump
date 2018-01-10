@@ -33,7 +33,7 @@ def check_pod_running_cb(nodes):
     ret_code = True
     pod_not_seen_on_nodes = nodes[:]
     for name, ready_status, status, node_name in \
-            utils.get_pods_status_iterator("cilium-"):
+            utils.get_pods_summarized_status_iterator("cilium-"):
         pod_not_seen_on_nodes.remove(node_name)
         if status != "Running" or ready_status != "1/1":
             log.error("pod {} running on {} has ready status"
@@ -50,9 +50,7 @@ def check_pod_running_cb(nodes):
             except subprocess.CalledProcessError as exc:
                 log.error(
                     "command to get the Cilium logs has failed. "
-                    "error code: ",
-                    exc.returncode,
-                    exc.output)
+                    "error code: {} {}".format(exc.returncode, exc.output))
                 ret_code = False
                 continue
             ret_code = False
@@ -87,7 +85,7 @@ def check_pod_running_cb(nodes):
                          ready_status,
                          status))
     if len(pod_not_seen_on_nodes) != 0:
-        log.warning("could not find cilium pod on node(s): "
+        log.warning("could not find a running cilium pod on node(s): "
                     "{}".format(pod_not_seen_on_nodes))
     return ret_code
 
@@ -146,7 +144,8 @@ def check_drop_notifications_enabled_cb():
             output = subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError as grepexc:
             log.error("command to fetch cilium config has failed."
-                      "error code: ", grepexc.returncode, grepexc.output)
+                      "error code: {} {}".format(grepexc.returncode,
+                                                 grepexc.output))
             ret_code = False
             continue
         if "Enabled" not in output.strip(' \t\n\r'):
@@ -187,7 +186,8 @@ def check_trace_notifications_enabled_cb():
             output = subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError as grepexc:
             log.error("command to fetch cilium config has failed."
-                      "error code: ", grepexc.returncode, grepexc.output)
+                      "error code: {} {}".format(grepexc.returncode,
+                                                 grepexc.output))
             ret_code = False
             continue
         if "Enabled" not in output.strip(' \t\n\r'):
