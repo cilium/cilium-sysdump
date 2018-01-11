@@ -13,11 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import collections
 import sys
 import subprocess
 import logging
 import time
-import collections
 
 FORMAT = '%(levelname)s %(message)s'
 # TODO: Make the logging level configurable.
@@ -36,6 +36,9 @@ if sys.stdout.isatty():
         logging.getLevelName(
             logging.ERROR))
 log = logging.getLogger(__name__)
+
+STATUS_RUNNING = 'Running'
+STATUS_NOT_RUNNING = 'Not Running'
 
 
 class ModuleCheck:
@@ -162,35 +165,33 @@ def get_pods_summarized_status_iterator(pod_name_substring, must_exist=True):
     Returns:
         An object of type PodStatus.
     """
-    pod_name_status_map = {}
-    for pod_status in \
-            get_pods_status_iterator(pod_name_substring, must_exist):
-        pod_name_status_map[pod_status.name] = pod_status.status
-        for attempt in range(0, 10):
-            # These retry attempts will take some time. Provide some form of
-            # visual feedback to the user.
-            # Cannot use log as it'll print on a new line every time.
-            sys.stdout.write('.')
-            sys.stdout.flush()
-            time.sleep(2)
+    pod_status_map = {}
+    for attempt in range(0, 10):
+        # These retry attempts will take some time. Provide some form of
+        # visual feedback to the user.
+        # Cannot use log as it'll print on a new line every time.
+        sys.stdout.write('.')
+        sys.stdout.flush()
+        for pod_status in \
+                get_pods_status_iterator(pod_name_substring, must_exist):
+            status_verdict = STATUS_RUNNING
             try:
                 temp_pod_status = get_pod_status(pod_status.name)
-                if (temp_pod_status.status != "Running" and
-                    pod_name_status_map[pod_status.name] == "Running") \
-                        or pod_name_status_map[pod_status.name] == "":
+                if (temp_pod_status.status != STATUS_RUNNING):
                     # Prefer not Running status over `Running` status.
-                    pod_name_status_map[pod_status.name] = \
-                        temp_pod_status.status
-                    break
+                    status_verdict = temp_pod_status.status
             except RuntimeError:
-                pod_name_status_map[pod_status.name] = "Unknown"
-                break
-        sys.stdout.write('\n')
-        sys.stdout.flush()
-        ret_pod_status = PodStatus(pod_status.name, pod_status.ready_status,
-                                   pod_name_status_map[pod_status.name],
-                                   pod_status.node_name)
-        yield ret_pod_status
+                status_verdict = STATUS_NOT_RUNNING
+            pod_status_map[pod_status.name] = PodStatus(
+                pod_status.name,
+                pod_status.ready_status,
+                status_verdict,
+                pod_status.node_name)
+        time.sleep(2)
+    sys.stdout.write('\n')
+    sys.stdout.flush()
+    for pod_name in pod_status_map:
+        yield pod_status_map[pod_name]
 
 
 def get_pod_status(full_pod_name):

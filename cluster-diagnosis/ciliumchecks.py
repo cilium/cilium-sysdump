@@ -34,8 +34,11 @@ def check_pod_running_cb(nodes):
     pod_not_seen_on_nodes = nodes[:]
     for name, ready_status, status, node_name in \
             utils.get_pods_summarized_status_iterator("cilium-"):
-        pod_not_seen_on_nodes.remove(node_name)
-        if status != "Running" or ready_status != "1/1":
+        try:
+            pod_not_seen_on_nodes.remove(node_name)
+        except ValueError:
+            pass
+        if status != utils.STATUS_RUNNING or ready_status != "1/1":
             log.error("pod {} running on {} has ready status"
                       " {} and status {}".format(
                          name,
