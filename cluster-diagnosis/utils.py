@@ -13,9 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import collections
 import sys
 import subprocess
 import logging
+import time
 
 FORMAT = '%(levelname)s %(message)s'
 # TODO: Make the logging level configurable.
@@ -30,10 +32,13 @@ if sys.stdout.isatty():
             logging.WARNING))
     logging.addLevelName(
         logging.ERROR,
-        "\033[1;31m%s\033[1;0m" %
+        "\033[1;41m%s\033[1;0m" %
         logging.getLevelName(
             logging.ERROR))
 log = logging.getLogger(__name__)
+
+STATUS_RUNNING = 'Running'
+STATUS_NOT_RUNNING = 'Not Running'
 
 
 class ModuleCheck:
@@ -131,6 +136,100 @@ def get_pod_config(pod_name):
     return output
 
 
+PodStatus_ = collections.namedtuple('PodStatus',
+                                    'name ready_status status node_name')
+
+
+class PodStatus(PodStatus_):
+    """ A namedtupe with the following elements in this order.
+        name (string): name of the pod.
+        ready_status (string): the ready status of the pod.
+        status (string): the status of the pod (e.g. Running).
+        node_name (string): the name of the node.
+    """
+    pass
+
+
+def get_pods_summarized_status_iterator(pod_name_substring, must_exist=True):
+    """Returns a summarized status of the pods by retrieving the status
+    multiple times.
+
+    This helps avoid any false negatives that can occur
+    in the scenario wherein the status is checked just after a pod restart.
+
+    Args:
+        pod_name_substring - the substring containing the pod name.
+        must_exist - boolean to indicate that a pod with that name must exist.
+            If the condition isn't satisfied, an error will be logged.
+
+    Returns:
+        An object of type PodStatus.
+    """
+    pod_status_map = {}
+    for attempt in range(0, 10):
+        # These retry attempts will take some time. Provide some form of
+        # visual feedback to the user.
+        # Cannot use log as it'll print on a new line every time.
+        sys.stdout.write('.')
+        sys.stdout.flush()
+        for pod_status in \
+                get_pods_status_iterator(pod_name_substring, must_exist):
+            status_verdict = STATUS_RUNNING
+            try:
+                temp_pod_status = get_pod_status(pod_status.name)
+                if (temp_pod_status.status != STATUS_RUNNING):
+                    # Prefer not Running status over `Running` status.
+                    status_verdict = temp_pod_status.status
+            except RuntimeError:
+                status_verdict = STATUS_NOT_RUNNING
+            pod_status_map[pod_status.name] = PodStatus(
+                pod_status.name,
+                pod_status.ready_status,
+                status_verdict,
+                pod_status.node_name)
+        time.sleep(2)
+    sys.stdout.write('\n')
+    sys.stdout.flush()
+    for pod_name in pod_status_map:
+        yield pod_status_map[pod_name]
+
+
+def get_pod_status(full_pod_name):
+    """Returns an iterator to the status of pods.
+
+    Args:
+        full_pod_name - the complete pod name.
+
+    Returns:
+        An object of type PodStatus.
+    """
+    cmd = "kubectl get pods -o wide --all-namespaces " \
+          "| grep " + full_pod_name + " | " \
+          "awk '{print $2 \" \" $3 \" \" $4 \" \" $NF}'"
+    output = ""
+    try:
+        output = subprocess.check_output(cmd, shell=True)
+    except subprocess.CalledProcessError as exc:
+        log.error("command to get status of {} has "
+                  "failed. error code: "
+                  "{} {}".format(full_pod_name,
+                                 exc.returncode, exc.output))
+        return
+    if output == "":
+        log.error("pod {} is not running on the cluster".format(
+                full_pod_name))
+        raise RuntimeError("pod {} is not running on the cluster".format(
+                full_pod_name))
+    # Example line:
+    # name-blah-sr64c 0/1 CrashLoopBackOff
+    # ip-172-0-33-255.us-west-2.compute.internal
+    split_line = output.split(' ')
+    return PodStatus(name=split_line[0],
+                     ready_status=split_line[1],
+                     status=split_line[2],
+                     node_name=split_line[-1])
+
+
 def get_pods_status_iterator(pod_name_substring, must_exist=True):
     """Returns an iterator to the status of pods.
 
@@ -140,10 +239,7 @@ def get_pods_status_iterator(pod_name_substring, must_exist=True):
             If the condition isn't satisfied, an error will be logged.
 
     Returns:
-        name (string): name of the pod.
-        ready_status (string): the ready status of the pod.
-        status (string): the status of the pod (e.g. Running).
-        node_name (string): the name of the node.
+        An object of type PodStatus.
     """
     cmd = "kubectl get pods -o wide --all-namespaces " \
           "| grep " + pod_name_substring + " | " \
@@ -167,4 +263,7 @@ def get_pods_status_iterator(pod_name_substring, must_exist=True):
         # name-blah-sr64c 0/1 CrashLoopBackOff
         # ip-172-0-33-255.us-west-2.compute.internal
         split_line = line.split(' ')
-        yield split_line[0], split_line[1], split_line[2], split_line[-1]
+        yield PodStatus(name=split_line[0],
+                        ready_status=split_line[1],
+                        status=split_line[2],
+                        node_name=split_line[-1])
