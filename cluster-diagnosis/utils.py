@@ -267,3 +267,20 @@ def get_pods_status_iterator(pod_name_substring, must_exist=True):
                         ready_status=split_line[1],
                         status=split_line[2],
                         node_name=split_line[-1])
+
+
+def getopts(argv):
+    """Collect command line options in a dictionary.
+
+        We cannot use sys.getopt as it is supported only in Python3.
+    """
+    opts = {}
+    while argv:
+        if argv[0][0] == '-':
+            if len(argv) > 1:
+                opts[argv[0]] = argv[1]
+            else:
+                opts[argv[0]] = None
+        # Reduce the arg list
+        argv = argv[1:]
+    return opts
