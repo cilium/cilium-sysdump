@@ -1,3 +1,8 @@
+# Virtual ENV files
 venv/
+
+# Generated artifacts
 cluster-diagnosis.zip
 
+# Editor
+.idea/

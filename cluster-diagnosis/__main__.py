@@ -17,9 +17,18 @@ import utils
 import ciliumchecks
 import k8schecks
 import logging
+import sys
+
+
 log = logging.getLogger(__name__)
 
 if __name__ == "__main__":
+    args = utils.getopts(sys.argv)
+    if '-h' in args:
+        log.info("Usage:\n      python cluster-diagnosis.zip\nFlags:\n"
+                 "-h        help text")
+        sys.exit(0)
+
     nodes = utils.get_nodes()
 
     k8s_check_grp = utils.ModuleCheckGroup("k8s")
