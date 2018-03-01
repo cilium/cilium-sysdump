@@ -43,7 +43,7 @@ def check_kube_apiserver_version_cb():
                 exc.output))
         return False
     else:
-        for line in output.splitlines():
+        for line in output.decode().splitlines():
             match = p.search(line)
             if match:
                 major_version = int(match.group(1))
@@ -87,8 +87,9 @@ def check_rbac_cb():
                     exc.output))
             ret_code = False
         else:
-            if "--authorization-mode=RBAC" in output or \
-                    "--authorization-mode=ABAC" in output:
+            decoded_output = output.decode()
+            if "--authorization-mode=RBAC" in decoded_output or \
+                    "--authorization-mode=ABAC" in decoded_output:
                 log.info("RBAC is enabled on the cluster")
             else:
                 log.info("RBAC has been disabled on this cluster")

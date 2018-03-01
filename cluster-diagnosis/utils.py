@@ -120,7 +120,7 @@ def get_nodes():
     except subprocess.CalledProcessError as grepexc:
         log.error("error code: ", grepexc.returncode, grepexc.output)
         return []
-    return output.splitlines()
+    return output.decode().splitlines()
 
 
 def get_pod_config(pod_name):
@@ -133,7 +133,7 @@ def get_pod_config(pod_name):
         return None
     if output == "":
         log.error("could not get pod configuration.")
-    return output
+    return output.decode()
 
 
 PodStatus_ = collections.namedtuple('PodStatus',
