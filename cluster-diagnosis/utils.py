@@ -127,13 +127,14 @@ def get_pod_config(pod_name):
     """Returns the pod config of a k8s pod with name pod_name. """
     COMMAND = "kubectl describe pod " + pod_name + " -n kube-system"
     try:
-        output = subprocess.check_output(COMMAND, shell=True)
+        encoded_output = subprocess.check_output(COMMAND, shell=True)
     except subprocess.CalledProcessError as grepexc:
         log.error("error code: ", grepexc.returncode, grepexc.output)
         return None
+    output = encoded_output.decode()
     if output == "":
         log.error("could not get pod configuration.")
-    return output.decode()
+    return output
 
 
 PodStatus_ = collections.namedtuple('PodStatus',
@@ -206,13 +207,14 @@ def get_pod_status(full_pod_name):
           "awk '{print $2 \" \" $3 \" \" $4 \" \" $NF}'"
     output = ""
     try:
-        output = subprocess.check_output(cmd, shell=True)
+        encoded_output = subprocess.check_output(cmd, shell=True)
     except subprocess.CalledProcessError as exc:
         log.error("command to get status of {} has "
                   "failed. error code: "
                   "{} {}".format(full_pod_name,
                                  exc.returncode, exc.output))
         return
+    output = encoded_output.decode()
     if output == "":
         log.error("pod {} is not running on the cluster".format(
                 full_pod_name))
@@ -221,7 +223,7 @@ def get_pod_status(full_pod_name):
     # Example line:
     # name-blah-sr64c 0/1 CrashLoopBackOff
     # ip-172-0-33-255.us-west-2.compute.internal
-    split_line = output.decode().split(' ')
+    split_line = output.split(' ')
     return PodStatus(name=split_line[0],
                      ready_status=split_line[1],
                      status=split_line[2],
@@ -244,19 +246,20 @@ def get_pods_status_iterator(pod_name_substring, must_exist=True):
           "awk '{print $2 \" \" $3 \" \" $4 \" \" $NF}'"
     output = ""
     try:
-        output = subprocess.check_output(cmd, shell=True)
+        encoded_output = subprocess.check_output(cmd, shell=True)
     except subprocess.CalledProcessError as exc:
         log.error("command to get status of {} has "
                   "failed. error code: "
                   "{} {}".format(pod_name_substring,
                                  exc.returncode, exc.output))
         return
+    output = encoded_output.decode()
     if output == "":
         if must_exist:
             log.error("no {} pods are running on the cluster".format(
                 pod_name_substring))
         return
-    for line in output.decode().splitlines():
+    for line in output.splitlines():
         # Example line:
         # name-blah-sr64c 0/1 CrashLoopBackOff
         # ip-172-0-33-255.us-west-2.compute.internal

@@ -78,7 +78,7 @@ def check_rbac_cb():
         cmd = "kubectl describe pod " + name + \
               " -n kube-system"
         try:
-            output = subprocess.check_output(cmd, shell=True)
+            encoded_output = subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError as exc:
             log.error(
                 "command to check kube-apiserver pod configuration has failed."
@@ -87,9 +87,9 @@ def check_rbac_cb():
                     exc.output))
             ret_code = False
         else:
-            decoded_output = output.decode()
-            if "--authorization-mode=RBAC" in decoded_output or \
-                    "--authorization-mode=ABAC" in decoded_output:
+            output = encoded_output.decode()
+            if "--authorization-mode=RBAC" in output or \
+                    "--authorization-mode=ABAC" in output:
                 log.info("RBAC is enabled on the cluster")
             else:
                 log.info("RBAC has been disabled on this cluster")

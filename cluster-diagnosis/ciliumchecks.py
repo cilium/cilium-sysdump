@@ -49,13 +49,14 @@ def check_pod_running_cb(nodes):
             cmd = "kubectl logs -n kube-system " + name
             output = ""
             try:
-                output = subprocess.check_output(cmd, shell=True)
+                encoded_output = subprocess.check_output(cmd, shell=True)
             except subprocess.CalledProcessError as exc:
                 log.error(
                     "command to get the Cilium logs has failed. "
                     "error code: {} {}".format(exc.returncode, exc.output))
                 ret_code = False
                 continue
+            output = encoded_output.decode()
             ret_code = False
             # Check whether the KV store configuration is bad.
             if "Unable to setup kvstore" in output:
@@ -144,13 +145,14 @@ def check_drop_notifications_enabled_cb():
               "| grep DropNotification | awk '{print $2}'"
         output = ""
         try:
-            output = subprocess.check_output(cmd, shell=True)
+            encoded_output = subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError as grepexc:
             log.error("command to fetch cilium config has failed."
                       "error code: {} {}".format(grepexc.returncode,
                                                  grepexc.output))
             ret_code = False
             continue
+        output = encoded_output.decode()
         if "Enabled" not in output.strip(' \t\n\r'):
             # Can't use exact match/string comparison as the output has
             # ASCII-encoded characters.
@@ -186,13 +188,14 @@ def check_trace_notifications_enabled_cb():
               "| grep TraceNotification | awk '{print $2}'"
         output = ""
         try:
-            output = subprocess.check_output(cmd, shell=True)
+            encoded_output = subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError as grepexc:
             log.error("command to fetch cilium config has failed."
                       "error code: {} {}".format(grepexc.returncode,
                                                  grepexc.output))
             ret_code = False
             continue
+        output = encoded_output.decode()
         if "Enabled" not in output.strip(' \t\n\r'):
             # Can't use exact match/string comparison as the output has
             # ASCII-encoded characters.
