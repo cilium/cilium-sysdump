@@ -119,7 +119,8 @@ def get_nodes():
     try:
         output = subprocess.check_output(COMMAND, shell=True)
     except subprocess.CalledProcessError as grepexc:
-        log.error("error code: ", grepexc.returncode, grepexc.output)
+        log.error("error code: {} {}".format(grepexc.returncode,
+                                             grepexc.output))
         return []
     return output.decode().splitlines()
 
@@ -130,7 +131,8 @@ def get_pod_config(pod_name):
     try:
         encoded_output = subprocess.check_output(COMMAND, shell=True)
     except subprocess.CalledProcessError as grepexc:
-        log.error("error code: ", grepexc.returncode, grepexc.output)
+        log.error("error code: {} {}".format(grepexc.returncode,
+                                             grepexc.output))
         return None
     output = encoded_output.decode()
     if output == "":
@@ -206,7 +208,6 @@ def get_pod_status(full_pod_name):
     cmd = "kubectl get pods -o wide --all-namespaces " \
           "| grep " + full_pod_name + " | " \
           "awk '{print $2 \" \" $3 \" \" $4 \" \" $NF}'"
-    output = ""
     try:
         encoded_output = subprocess.check_output(cmd, shell=True)
     except subprocess.CalledProcessError as exc:
@@ -245,7 +246,6 @@ def get_pods_status_iterator(pod_name_substring, must_exist=True):
     cmd = "kubectl get pods -o wide --all-namespaces " \
           "| grep " + pod_name_substring + " | " \
           "awk '{print $2 \" \" $3 \" \" $4 \" \" $NF}'"
-    output = ""
     try:
         encoded_output = subprocess.check_output(cmd, shell=True)
     except subprocess.CalledProcessError as exc:
