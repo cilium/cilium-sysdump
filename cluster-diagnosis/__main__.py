@@ -18,17 +18,18 @@ import ciliumchecks
 import k8schecks
 import logging
 import sys
+import argparse
 
 
 log = logging.getLogger(__name__)
+exit_code = 0
+
 
 if __name__ == "__main__":
-    args = utils.getopts(sys.argv)
-    if '-h' in args:
-        log.info("Usage:\n      python cluster-diagnosis.zip\nFlags:\n"
-                 "-h        help text")
-        sys.exit(0)
-
+    parser = argparse.ArgumentParser(description='Cluster diagnosis '
+                                                 'tool.',
+                                     usage='python cluster-diagnosis.zip')
+    args = parser.parse_args()
     nodes = utils.get_nodes()
 
     k8s_check_grp = utils.ModuleCheckGroup("k8s")
@@ -40,7 +41,8 @@ if __name__ == "__main__":
         utils.ModuleCheck(
             "check RBAC configuration",
             lambda: k8schecks.check_rbac_cb()))
-    k8s_check_grp.run()
+    if not k8s_check_grp.run():
+        exit_code = 1
 
     cilium_check_grp = utils.ModuleCheckGroup("cilium")
     cilium_check_grp.add(
@@ -57,4 +59,8 @@ if __name__ == "__main__":
     cilium_check_grp.add(utils.ModuleCheck(
         "L3/4 visibility: check whether TraceNotification is enabled",
         lambda: ciliumchecks.check_trace_notifications_enabled_cb()))
-    cilium_check_grp.run()
+
+    if not cilium_check_grp.run():
+        exit_code = 1
+
+    sys.exit(exit_code)
