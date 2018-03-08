@@ -107,8 +107,14 @@ def check_access_log_config_cb():
     for name, ready_status, status, node_name in \
             utils.get_pods_status_iterator("cilium-"):
         # TODO: Add volume checks.
+        config = utils.get_pod_config(name)
+        if not config:
+            log.warn('could not check access log configuration on cilium'
+                     ' pod {} on node {}'.format(name, node_name))
+            ret_code = False
+            continue
         if re.search('^.*--access-log.*/var/run/cilium/access.log.*',
-                     utils.get_pod_config(name), re.DOTALL) is None:
+                     config, re.DOTALL) is None:
             log.warn('cilium pod {} on node {} '
                      'has not been configured with '
                      '--access-log parameter or the '
