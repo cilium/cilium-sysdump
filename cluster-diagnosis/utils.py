@@ -109,7 +109,8 @@ class ModuleCheckGroup:
         log.info(self.get_title())
         for check in self.checks:
             if not check.run():
-                return
+                return False
+        return True
 
 
 def get_nodes():
@@ -165,7 +166,7 @@ def get_pods_summarized_status_iterator(pod_name_substring):
         An object of type PodStatus.
     """
     pod_status_map = {}
-    for attempt in range(0, 10):
+    for attempt in range(0, 5):
         # These retry attempts will take some time. Provide some form of
         # visual feedback to the user.
         # Cannot use log as it'll print on a new line every time.
