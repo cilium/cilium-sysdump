@@ -60,7 +60,9 @@ def check_kube_apiserver_version_cb():
                         major_version, minor_version))
                     return True
         log.warning("could not detect the kube-apiserver version")
-        return False
+        # We have observed that some kubectl clients return empty server major
+        # and minor versions. Return True for now. #FixMe
+        return True
 
 
 def check_rbac_cb():
