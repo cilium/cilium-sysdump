@@ -94,7 +94,7 @@ def check_pod_running_cb(nodes):
             ret_code = False
         else:
             log.warning("could not find a running cilium pod on node(s): "
-                    "{}".format(pod_not_seen_on_nodes))
+                        "{}".format(pod_not_seen_on_nodes))
     return ret_code
 
 
