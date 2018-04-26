@@ -91,10 +91,6 @@ if __name__ == "__main__":
         utils.ModuleCheck(
             "check whether pod is running",
             lambda: ciliumchecks.check_pod_running_cb(nodes)))
-    cilium_check_grp.add(
-        utils.ModuleCheck(
-            "check the access log parameter",
-            lambda: ciliumchecks.check_access_log_config_cb()))
     cilium_check_grp.add(utils.ModuleCheck(
         "L3/4 visibility: check whether DropNotification is enabled",
         lambda: ciliumchecks.check_drop_notifications_enabled_cb()))
