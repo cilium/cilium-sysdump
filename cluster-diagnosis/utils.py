@@ -219,9 +219,9 @@ def get_pod_status(full_pod_name):
     output = encoded_output.decode()
     if output == "":
         log.error("pod {} is not running on the cluster".format(
-                full_pod_name))
+                  full_pod_name))
         raise RuntimeError("pod {} is not running on the cluster".format(
-                full_pod_name))
+                           full_pod_name))
     # Example line:
     # name-blah-sr64c 0/1 CrashLoopBackOff
     # ip-172-0-33-255.us-west-2.compute.internal

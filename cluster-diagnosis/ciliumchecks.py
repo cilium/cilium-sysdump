@@ -19,6 +19,10 @@ import re
 import logging
 log = logging.getLogger(__name__)
 
+MINIMUM_SUPPORTED_CILIUM_VERSION_MAJOR = 1
+MINIMUM_SUPPORTED_CILIUM_VERSION_MINOR = 0
+MINIMUM_SUPPORTED_CILIUM_VERSION_PATCH = 0
+
 
 def check_pod_running_cb(nodes):
     """Checks whether the Cilium container is running on all the nodes.
@@ -41,10 +45,7 @@ def check_pod_running_cb(nodes):
         if status != utils.STATUS_RUNNING or ready_status != "1/1":
             log.error("pod {} running on {} has ready status"
                       " {} and status {}".format(
-                         name,
-                         node_name,
-                         ready_status,
-                         status))
+                          name, node_name, ready_status, status))
             # Check the log for common errors.
             cmd = "kubectl logs -n kube-system " + name
             output = ""
@@ -125,8 +126,8 @@ def check_access_log_config_cb():
                      'access log filename is incorrect.'
                      ' Fix this if you would like'
                      ' to see Layer 7 proxy logs.'.format(
-                          name,
-                          node_name))
+                         name,
+                         node_name))
             ret_code = False
         else:
             log.info('cilium pod {} on node {} '
@@ -221,4 +222,63 @@ def check_trace_notifications_enabled_cb():
                          name,
                          node_name,
                          output.strip(' \t\n\r')))
+    return ret_code
+
+
+def check_cilium_version_cb():
+    """Checks whether cilium version is >= minimum supported version.
+
+    Args:
+        None
+
+    Returns:
+        True if successful, False otherwise.
+    """
+    ret_code = True
+    for name, ready_status, status, node_name in\
+            utils.get_pods_status_iterator("cilium-"):
+        cmd = "kubectl describe pod " + name + \
+              " -n kube-system | grep Image: | " \
+              "awk '{print $2}' | awk -F ':' '{print $2}'"
+        output = ""
+        try:
+            encoded_output = subprocess.check_output(cmd, shell=True)
+        except subprocess.CalledProcessError as grepexc:
+            log.error("command to fetch cilium version has failed."
+                      "error code: {} {}".format(grepexc.returncode,
+                                                 grepexc.output))
+            ret_code = False
+            break
+        output = encoded_output.decode().strip(' \t\n\r')
+        m = re.match(r"v(\d+).(\d+).(\d+)", output)
+        if not m:
+            log.error("cilium version {} not in the expected format vX.Y.Z".format(output))
+            ret_code = False
+            break
+
+        major = int(m.group(1))
+        minor = int(m.group(2))
+        patch = int(m.group(3))
+
+        print_error = True
+        if major > MINIMUM_SUPPORTED_CILIUM_VERSION_MAJOR:
+            print_error = False
+        elif major == MINIMUM_SUPPORTED_CILIUM_VERSION_MAJOR:
+            if minor > MINIMUM_SUPPORTED_CILIUM_VERSION_MINOR:
+                print_error = False
+            elif minor == MINIMUM_SUPPORTED_CILIUM_VERSION_MINOR:
+                if patch >= MINIMUM_SUPPORTED_CILIUM_VERSION_PATCH:
+                    print_error = False
+
+        if print_error:
+            log.error('cilium version is {}. Minimum supported version is: v{}.{}.{}'.format(
+                output, MINIMUM_SUPPORTED_CILIUM_VERSION_MAJOR,
+                MINIMUM_SUPPORTED_CILIUM_VERSION_MINOR,
+                MINIMUM_SUPPORTED_CILIUM_VERSION_PATCH))
+            ret_code = False
+        else:
+            log.info('cilium version is {}'.format(output))
+
+        break  # We do not need to inspect every cilium pod. Break here.
+
     return ret_code

@@ -65,8 +65,8 @@ class SysdumpCollector:
                                                utcnow().isoformat())
             cmd = "kubectl logs --since={} --limit-bytes={} " \
                   "-n kube-system {} > {}/{}".format(
-                    self.since, self.size_limit, name, self.sysdump_dir_name,
-                    log_file_name)
+                      self.since, self.size_limit, name, self.sysdump_dir_name,
+                      log_file_name)
             try:
                 subprocess.check_output(cmd, shell=True)
             except subprocess.CalledProcessError as exc:
@@ -90,7 +90,7 @@ class SysdumpCollector:
                                               type_of_stat)
             cmd = "kubectl exec -it -n kube-system {} -- " \
                   "/bin/gops {} 1 > {}/{}".format(
-                    name, type_of_stat, self.sysdump_dir_name, file_name)
+                      name, type_of_stat, self.sysdump_dir_name, file_name)
             try:
                 subprocess.check_output(cmd, shell=True)
             except subprocess.CalledProcessError as exc:

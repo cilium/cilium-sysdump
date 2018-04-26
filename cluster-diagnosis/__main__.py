@@ -89,6 +89,10 @@ if __name__ == "__main__":
     cilium_check_grp = utils.ModuleCheckGroup("cilium")
     cilium_check_grp.add(
         utils.ModuleCheck(
+            "check whether cilium version is supported",
+            lambda: ciliumchecks.check_cilium_version_cb()))
+    cilium_check_grp.add(
+        utils.ModuleCheck(
             "check whether pod is running",
             lambda: ciliumchecks.check_pod_running_cb(nodes)))
     cilium_check_grp.add(utils.ModuleCheck(
