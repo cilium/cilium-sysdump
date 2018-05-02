@@ -60,13 +60,14 @@ class SysdumpCollector:
     def collect_logs(self, pod_name_prefix):
         for name, _, _, _ in \
                 utils.get_pods_status_iterator(pod_name_prefix):
-            log_file_name = "{}-{}.log".format(name,
+            log_file_name = "{}-{}".format(name,
                                                datetime.datetime.
                                                utcnow().isoformat())
-            cmd = "kubectl logs --since={} --limit-bytes={} " \
-                  "-n kube-system {} > {}/{}".format(
-                      self.since, self.size_limit, name, self.sysdump_dir_name,
-                      log_file_name)
+            command = "kubectl logs {} --timestamps=true --since={} " \
+                "--limit-bytes={} -n kube-system {} > {}/{}.log"
+            cmd = command.format(
+                      "", self.since, self.size_limit, name,
+                      self.sysdump_dir_name, log_file_name)
             try:
                 subprocess.check_output(cmd, shell=True)
             except subprocess.CalledProcessError as exc:
@@ -75,6 +76,22 @@ class SysdumpCollector:
                               .format(exc, log_file_name))
             else:
                 log.info("collected log file: {}".format(log_file_name))
+
+            # Previous containers
+            log_file_name_previous = "{0}-previous".format(log_file_name)
+            cmd = command.format(
+                "--previous", self.since, self.size_limit, name,
+                self.sysdump_dir_name, log_file_name_previous)
+            try:
+                subprocess.check_output(cmd, shell=True)
+            except subprocess.CalledProcessError as exc:
+                if exc.returncode != 0:
+                    log.debug(
+                        "Debug: {}. Could not collect previous log for '{}': {}"
+                        .format(exc, name, log_file_name))
+            else:
+                log.info("collected log file: {}".format(
+                    log_file_name_previous))
 
     def collect_gops_stats(self, pod_name_prefix):
         self.collect_gops(pod_name_prefix, "stats")
