@@ -18,6 +18,7 @@ import sys
 import subprocess
 import logging
 import time
+import re
 
 FORMAT = '%(levelname)s %(message)s'
 # TODO: Make the logging level configurable.
@@ -265,10 +266,12 @@ def get_pods_status_iterator(pod_name_substring, must_exist=True):
         # name-blah-sr64c 0/1 CrashLoopBackOff
         # ip-172-0-33-255.us-west-2.compute.internal
         split_line = line.split(' ')
-        yield PodStatus(name=split_line[0],
-                        ready_status=split_line[1],
-                        status=split_line[2],
-                        node_name=split_line[-1])
+        pattern = re.compile("^" + pod_name_substring)
+        if pattern.match(split_line[0]) is not None:
+            yield PodStatus(name=split_line[0],
+                            ready_status=split_line[1],
+                            status=split_line[2],
+                            node_name=split_line[-1])
 
 
 def getopts(argv):
