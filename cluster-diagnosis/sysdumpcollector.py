@@ -221,6 +221,8 @@ class SysdumpCollector:
         self.collect_cilium_bugtool_output()
         log.info("collecting cilium logs ...")
         self.collect_logs("cilium-")
+
+    def archive(self):
         shutil.make_archive(self.sysdump_dir_name, 'zip',
                             self.sysdump_dir_name)
         log.info("deleting directory: {}".format(self.sysdump_dir_name))

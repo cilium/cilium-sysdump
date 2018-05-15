@@ -69,6 +69,7 @@ if __name__ == "__main__":
                 args.since,
                 args.size_limit)
             sysdumpcollector.collect()
+            sysdumpcollector.archive()
             sys.exit(0)
     except AttributeError:
         pass
