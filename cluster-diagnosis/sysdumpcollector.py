@@ -117,7 +117,8 @@ class SysdumpCollector:
             except subprocess.CalledProcessError as exc:
                 if exc.returncode != 0:
                     log.debug(
-                        "Debug: {}. Could not collect previous log for '{}': {}"
+                        "Debug: {}. Could not collect previous "
+                        "log for '{}': {}"
                         .format(exc, name, log_file_name))
             else:
                 log.info("collected log file: {}".format(

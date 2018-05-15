@@ -252,7 +252,8 @@ def check_cilium_version_cb():
         output = encoded_output.decode().strip(' \t\n\r')
         m = re.match(r"v(\d+).(\d+).(\d+)", output)
         if not m:
-            log.error("cilium version {} not in the expected format vX.Y.Z".format(output))
+            log.error("cilium version {} not in the expected format "
+                      "vX.Y.Z".format(output))
             ret_code = False
             break
 
@@ -271,10 +272,11 @@ def check_cilium_version_cb():
                     print_error = False
 
         if print_error:
-            log.error('cilium version is {}. Minimum supported version is: v{}.{}.{}'.format(
-                output, MINIMUM_SUPPORTED_CILIUM_VERSION_MAJOR,
-                MINIMUM_SUPPORTED_CILIUM_VERSION_MINOR,
-                MINIMUM_SUPPORTED_CILIUM_VERSION_PATCH))
+            log.error('cilium version is {}. Minimum supported '
+                      'version is: v{}.{}.{}'.format(
+                       output, MINIMUM_SUPPORTED_CILIUM_VERSION_MAJOR,
+                       MINIMUM_SUPPORTED_CILIUM_VERSION_MINOR,
+                       MINIMUM_SUPPORTED_CILIUM_VERSION_PATCH))
             ret_code = False
         else:
             log.info('cilium version is {}'.format(output))
