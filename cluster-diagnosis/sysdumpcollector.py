@@ -42,6 +42,21 @@ class SysdumpCollector:
         self.since = since
         self.size_limit = size_limit
 
+    def collect_nodes_overview(self):
+        nodes_overview_file_name = "nodes-{}.json".format(datetime.datetime.
+                                                          utcnow().isoformat())
+        cmd = "kubectl get nodes -o json > {}/{}".format(
+              self.sysdump_dir_name, nodes_overview_file_name)
+        try:
+            subprocess.check_output(cmd, shell=True)
+        except subprocess.CalledProcessError as exc:
+            if exc.returncode != 0:
+                log.error("Error: {}. Could not collect nodes overview: {}".
+                          format(exc, nodes_overview_file_name))
+        else:
+            log.info("collected nodes overview: {}"
+                     .format(nodes_overview_file_name))
+
     def collect_pods_overview(self):
         pods_overview_file_name = "pods-{}.json".format(datetime.datetime.
                                                         utcnow().isoformat())
@@ -57,17 +72,32 @@ class SysdumpCollector:
             log.info("collected pods overview: {}"
                      .format(pods_overview_file_name))
 
+    def collect_pods_summary(self):
+        pods_summary_file_name = "pods-{}.txt".format(datetime.datetime.
+                                                      utcnow().isoformat())
+        cmd = "kubectl get pods --all-namespaces -o wide > {}/{}".format(
+              self.sysdump_dir_name, pods_summary_file_name)
+        try:
+            subprocess.check_output(cmd, shell=True)
+        except subprocess.CalledProcessError as exc:
+            if exc.returncode != 0:
+                log.error("Error: {}. Could not collect pods summary: {}".
+                          format(exc, pods_summary_file_name))
+        else:
+            log.info("collected pods summary: {}"
+                     .format(pods_summary_file_name))
+
     def collect_logs(self, pod_name_prefix):
         for name, _, _, _ in \
                 utils.get_pods_status_iterator(pod_name_prefix):
             log_file_name = "{}-{}".format(name,
-                                               datetime.datetime.
-                                               utcnow().isoformat())
+                                           datetime.datetime.
+                                           utcnow().isoformat())
             command = "kubectl logs {} --timestamps=true --since={} " \
                 "--limit-bytes={} -n kube-system {} > {}/{}.log"
             cmd = command.format(
-                      "", self.since, self.size_limit, name,
-                      self.sysdump_dir_name, log_file_name)
+                "", self.since, self.size_limit, name,
+                self.sysdump_dir_name, log_file_name)
             try:
                 subprocess.check_output(cmd, shell=True)
             except subprocess.CalledProcessError as exc:
@@ -177,8 +207,12 @@ class SysdumpCollector:
                         bugtool_output_file_name))
 
     def collect(self):
+        log.info("collecting nodes overview ...")
+        self.collect_nodes_overview()
         log.info("collecting pods overview ...")
         self.collect_pods_overview()
+        log.info("collecting pods summary ...")
+        self.collect_pods_summary()
         log.info("collecting cilium gops stats ...")
         self.collect_gops_stats("cilium-")
         log.info("collecting cilium network policy ...")
