@@ -25,7 +25,7 @@ import time
 log = logging.getLogger(__name__)
 
 
-class SysdumpCollector:
+class SysdumpCollector(object):
     """Collects logs and other useful information for debugging.
 
     Args:
