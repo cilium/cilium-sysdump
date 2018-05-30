@@ -164,6 +164,34 @@ class SysdumpCollector(object):
             log.info("collected cilium network policy: {}"
                      .format(cnp_file_name))
 
+    def collect_daemonset_yaml(self):
+        daemonset_file_name = "cilium-ds-{}.yaml".format(datetime.datetime
+                                                         .utcnow().isoformat())
+        cmd = "kubectl get ds cilium -n kube-system -oyaml > {}/{}".format(
+            self.sysdump_dir_name, daemonset_file_name)
+        try:
+            subprocess.check_output(cmd, shell=True)
+        except subprocess.CalledProcessError as exc:
+            if exc.returncode != 0:
+                log.error("Error: {}. Unable to get cilium daemonset yaml")
+        else:
+            log.info("collected cilium daemonset yaml file: {}".format(
+                daemonset_file_name))
+
+    def collect_cilium_configmap(self):
+        configmap_file_name = "cilium-configmap-{}.yaml".format(
+            datetime.datetime.utcnow().isoformat())
+        cmd = "kubectl get configmap cilium-config -n kube-system -oyaml " \
+              "> {}/{}".format(self.sysdump_dir_name, configmap_file_name)
+        try:
+            subprocess.check_output(cmd, shell=True)
+        except subprocess.CalledProcessError as exc:
+            if exc.returncode != 0:
+                log.error("Error: {}. Unable to get cilium configmap yaml")
+        else:
+            log.info("collected cilium configmap yaml file: {}".format(
+                configmap_file_name))
+
     def collect_cilium_bugtool_output(self):
         for name, _, _, _ in \
                 utils.get_pods_status_iterator("cilium-"):
@@ -218,6 +246,10 @@ class SysdumpCollector(object):
         self.collect_gops_stats("cilium-")
         log.info("collecting cilium network policy ...")
         self.collect_cnp()
+        log.info("collecting cilium daemonset yaml ...")
+        self.collect_daemonset_yaml()
+        log.info("collecting cilium configmap yaml ...")
+        self.collect_cilium_configmap()
         log.info("collecting cilium-bugtool output ...")
         self.collect_cilium_bugtool_output()
         log.info("collecting cilium logs ...")
