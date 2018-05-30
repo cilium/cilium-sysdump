@@ -252,9 +252,9 @@ def check_cilium_version_cb():
         output = encoded_output.decode().strip(' \t\n\r')
         m = re.match(r"v(\d+).(\d+).(\d+)", output)
         if not m:
-            log.error("cilium version {} not in the expected format "
-                      "vX.Y.Z".format(output))
-            ret_code = False
+            log.warning("cilium version {} not in the expected format "
+                        "vX.Y.Z".format(output))
+            ret_code = True
             break
 
         major = int(m.group(1))
