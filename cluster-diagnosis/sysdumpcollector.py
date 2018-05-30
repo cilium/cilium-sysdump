@@ -13,13 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import datetime
 import logging
 import re
 import shutil
 import subprocess
-import utils
-import datetime
 import time
+import utils
 
 
 log = logging.getLogger(__name__)
@@ -164,6 +164,34 @@ class SysdumpCollector(object):
             log.info("collected cilium network policy: {}"
                      .format(cnp_file_name))
 
+    def collect_daemonset_yaml(self):
+        daemonset_file_name = "cilium-ds-{}.yaml".format(datetime.datetime
+                                                         .utcnow().isoformat())
+        cmd = "kubectl get ds cilium -n kube-system -oyaml > {}/{}".format(
+            self.sysdump_dir_name, daemonset_file_name)
+        try:
+            subprocess.check_output(cmd, shell=True)
+        except subprocess.CalledProcessError as exc:
+            if exc.returncode != 0:
+                log.error("Error: {}. Unable to get cilium daemonset yaml")
+        else:
+            log.info("collected cilium daemonset yaml file: {}".format(
+                daemonset_file_name))
+
+    def collect_cilium_configmap(self):
+        configmap_file_name = "cilium-configmap-{}.yaml".format(
+            datetime.datetime.utcnow().isoformat())
+        cmd = "kubectl get configmap cilium-config -n kube-system -oyaml " \
+              "> {}/{}".format(self.sysdump_dir_name, configmap_file_name)
+        try:
+            subprocess.check_output(cmd, shell=True)
+        except subprocess.CalledProcessError as exc:
+            if exc.returncode != 0:
+                log.error("Error: {}. Unable to get cilium configmap yaml")
+        else:
+            log.info("collected cilium configmap yaml file: {}".format(
+                configmap_file_name))
+
     def collect_cilium_bugtool_output(self):
         for name, _, _, _ in \
                 utils.get_pods_status_iterator("cilium-"):
@@ -207,17 +235,52 @@ class SysdumpCollector(object):
                     log.info("collected cilium-bugtool output: {}".format(
                         bugtool_output_file_name))
 
+    def collect_services_overview(self):
+        svc_file_name = "services-{}.yaml".format(
+            datetime.datetime.utcnow().isoformat())
+        cmd = "kubectl get svc --all-namespaces -oyaml " \
+              "> {}/{}".format(self.sysdump_dir_name, svc_file_name)
+        try:
+            subprocess.check_output(cmd, shell=True)
+        except subprocess.CalledProcessError as exc:
+            if exc.returncode != 0:
+                log.error("Error: {}. Unable to get svc overview")
+        else:
+            log.info("collected svc overview: {}".format(svc_file_name))
+
+    def collect_k8s_version_info(self):
+        version_file_name = "k8s-version-info-{}.yaml".format(
+            datetime.datetime.utcnow().isoformat())
+        cmd = "kubectl version -oyaml > {}/{}".format(self.sysdump_dir_name,
+                                                      version_file_name)
+        try:
+            subprocess.check_output(cmd, shell=True)
+        except subprocess.CalledProcessError as exc:
+            if exc.returncode != 0:
+                log.error("Error: {}. Unable to get kubernetes version info")
+        else:
+            log.info("collected kubernetes version info: {}"
+                     .format(version_file_name))
+
     def collect(self):
+        log.info("collecting kubernetes version info ...")
+        self.collect_k8s_version_info()
         log.info("collecting nodes overview ...")
         self.collect_nodes_overview()
         log.info("collecting pods overview ...")
         self.collect_pods_overview()
         log.info("collecting pods summary ...")
         self.collect_pods_summary()
+        log.info("collecting services overview ...")
+        self.collect_services_overview()
         log.info("collecting cilium gops stats ...")
         self.collect_gops_stats("cilium-")
         log.info("collecting cilium network policy ...")
         self.collect_cnp()
+        log.info("collecting cilium daemonset yaml ...")
+        self.collect_daemonset_yaml()
+        log.info("collecting cilium configmap yaml ...")
+        self.collect_cilium_configmap()
         log.info("collecting cilium-bugtool output ...")
         self.collect_cilium_bugtool_output()
         log.info("collecting cilium logs ...")
