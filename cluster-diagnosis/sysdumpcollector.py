@@ -235,6 +235,19 @@ class SysdumpCollector(object):
                     log.info("collected cilium-bugtool output: {}".format(
                         bugtool_output_file_name))
 
+    def collect_services_overview(self):
+        svc_file_name = "services-{}.yaml".format(
+            datetime.datetime.utcnow().isoformat())
+        cmd = "kubectl get svc --all-namespaces -oyaml " \
+              "> {}/{}".format(self.sysdump_dir_name, svc_file_name)
+        try:
+            subprocess.check_output(cmd, shell=True)
+        except subprocess.CalledProcessError as exc:
+            if exc.returncode != 0:
+                log.error("Error: {}. Unable to get svc overview")
+        else:
+            log.info("collected svc overview: {}".format(svc_file_name))
+
     def collect(self):
         log.info("collecting nodes overview ...")
         self.collect_nodes_overview()
@@ -242,6 +255,8 @@ class SysdumpCollector(object):
         self.collect_pods_overview()
         log.info("collecting pods summary ...")
         self.collect_pods_summary()
+        log.info("collecting services overview ...")
+        self.collect_services_overview()
         log.info("collecting cilium gops stats ...")
         self.collect_gops_stats("cilium-")
         log.info("collecting cilium network policy ...")
