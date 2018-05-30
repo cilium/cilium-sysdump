@@ -13,13 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import datetime
 import logging
 import re
 import shutil
 import subprocess
-import utils
-import datetime
 import time
+import utils
 
 
 log = logging.getLogger(__name__)
@@ -248,7 +248,23 @@ class SysdumpCollector(object):
         else:
             log.info("collected svc overview: {}".format(svc_file_name))
 
+    def collect_k8s_version_info(self):
+        version_file_name = "k8s-version-info-{}.yaml".format(
+            datetime.datetime.utcnow().isoformat())
+        cmd = "kubectl version -oyaml > {}/{}".format(self.sysdump_dir_name,
+                                                      version_file_name)
+        try:
+            subprocess.check_output(cmd, shell=True)
+        except subprocess.CalledProcessError as exc:
+            if exc.returncode != 0:
+                log.error("Error: {}. Unable to get kubernetes version info")
+        else:
+            log.info("collected kubernetes version info: {}"
+                     .format(version_file_name))
+
     def collect(self):
+        log.info("collecting kubernetes version info ...")
+        self.collect_k8s_version_info()
         log.info("collecting nodes overview ...")
         self.collect_nodes_overview()
         log.info("collecting pods overview ...")
