@@ -289,3 +289,7 @@ def getopts(argv):
         # Reduce the arg list
         argv = argv[1:]
     return opts
+
+
+def get_current_time():
+    return time.strftime("%Y%m%d-%H%M%S")

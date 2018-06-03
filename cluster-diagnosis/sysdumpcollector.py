@@ -13,12 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datetime
 import logging
 import re
 import shutil
 import subprocess
-import time
 import utils
 
 
@@ -43,8 +41,8 @@ class SysdumpCollector(object):
         self.size_limit = size_limit
 
     def collect_nodes_overview(self):
-        nodes_overview_file_name = "nodes-{}.json".format(datetime.datetime.
-                                                          utcnow().isoformat())
+        nodes_overview_file_name = "nodes-{}.json".format(
+            utils.get_current_time())
         cmd = "kubectl get nodes -o json > {}/{}".format(
               self.sysdump_dir_name, nodes_overview_file_name)
         try:
@@ -58,8 +56,8 @@ class SysdumpCollector(object):
                      .format(nodes_overview_file_name))
 
     def collect_pods_overview(self):
-        pods_overview_file_name = "pods-{}.json".format(datetime.datetime.
-                                                        utcnow().isoformat())
+        pods_overview_file_name = "pods-{}.json".format(
+            utils.get_current_time())
         cmd = "kubectl get pods -o json --all-namespaces > {}/{}".format(
               self.sysdump_dir_name, pods_overview_file_name)
         try:
@@ -73,8 +71,8 @@ class SysdumpCollector(object):
                      .format(pods_overview_file_name))
 
     def collect_pods_summary(self):
-        pods_summary_file_name = "pods-{}.txt".format(datetime.datetime.
-                                                      utcnow().isoformat())
+        pods_summary_file_name = "pods-{}.txt".format(
+            utils.get_current_time())
         cmd = "kubectl get pods --all-namespaces -o wide > {}/{}".format(
               self.sysdump_dir_name, pods_summary_file_name)
         try:
@@ -91,8 +89,7 @@ class SysdumpCollector(object):
         for name, _, _, _ in \
                 utils.get_pods_status_iterator(pod_name_prefix):
             log_file_name = "{}-{}".format(name,
-                                           datetime.datetime.
-                                           utcnow().isoformat())
+                                           utils.get_current_time())
             command = "kubectl logs {} --timestamps=true --since={} " \
                 "--limit-bytes={} -n kube-system {} > {}/{}.log"
             cmd = command.format(
@@ -133,8 +130,7 @@ class SysdumpCollector(object):
         for name, _, _, _ in \
                 utils.get_pods_status_iterator(pod_name_prefix):
             file_name = "{}-{}-{}.txt".format(name,
-                                              datetime.datetime.
-                                              utcnow().isoformat(),
+                                              utils.get_current_time(),
                                               type_of_stat)
             cmd = "kubectl exec -it -n kube-system {} -- " \
                   "/bin/gops {} 1 > {}/{}".format(
@@ -150,8 +146,7 @@ class SysdumpCollector(object):
                     type_of_stat, file_name))
 
     def collect_cnp(self):
-        cnp_file_name = "cnp-{}.yaml".format(datetime.datetime.
-                                             utcnow().isoformat())
+        cnp_file_name = "cnp-{}.yaml".format(utils.get_current_time())
         cmd = "kubectl get cnp -o yaml --all-namespaces > {}/{}".format(
               self.sysdump_dir_name, cnp_file_name)
         try:
@@ -165,8 +160,8 @@ class SysdumpCollector(object):
                      .format(cnp_file_name))
 
     def collect_daemonset_yaml(self):
-        daemonset_file_name = "cilium-ds-{}.yaml".format(datetime.datetime
-                                                         .utcnow().isoformat())
+        daemonset_file_name = "cilium-ds-{}.yaml".format(
+            utils.get_current_time())
         cmd = "kubectl get ds cilium -n kube-system -oyaml > {}/{}".format(
             self.sysdump_dir_name, daemonset_file_name)
         try:
@@ -180,7 +175,7 @@ class SysdumpCollector(object):
 
     def collect_cilium_configmap(self):
         configmap_file_name = "cilium-configmap-{}.yaml".format(
-            datetime.datetime.utcnow().isoformat())
+            utils.get_current_time())
         cmd = "kubectl get configmap cilium-config -n kube-system -oyaml " \
               "> {}/{}".format(self.sysdump_dir_name, configmap_file_name)
         try:
@@ -196,7 +191,7 @@ class SysdumpCollector(object):
         for name, _, _, _ in \
                 utils.get_pods_status_iterator("cilium-"):
             bugtool_output_file_name = "bugtool-{}-{}.tar".format(
-                name, time.strftime("%Y%m%d-%H%M%S"))
+                name, utils.get_current_time())
             cmd = "kubectl exec -n kube-system -it {} cilium-bugtool".format(
                 name)
             try:
@@ -237,7 +232,7 @@ class SysdumpCollector(object):
 
     def collect_services_overview(self):
         svc_file_name = "services-{}.yaml".format(
-            datetime.datetime.utcnow().isoformat())
+            utils.get_current_time())
         cmd = "kubectl get svc --all-namespaces -oyaml " \
               "> {}/{}".format(self.sysdump_dir_name, svc_file_name)
         try:
@@ -250,7 +245,7 @@ class SysdumpCollector(object):
 
     def collect_k8s_version_info(self):
         version_file_name = "k8s-version-info-{}.yaml".format(
-            datetime.datetime.utcnow().isoformat())
+            utils.get_current_time())
         cmd = "kubectl version -oyaml > {}/{}".format(self.sysdump_dir_name,
                                                       version_file_name)
         try:
