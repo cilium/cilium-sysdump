@@ -159,6 +159,19 @@ class SysdumpCollector(object):
             log.info("collected cilium network policy: {}"
                      .format(cnp_file_name))
 
+    def collect_cep(self):
+        cep_file_name = "cep-{}.yaml".format(utils.get_current_time())
+        cmd = "kubectl get cep -o yaml --all-namespaces > {}/{}".format(
+            self.sysdump_dir_name, cep_file_name)
+        try:
+            subprocess.check_output(cmd, shell=True)
+        except subprocess.CalledProcessError as exc:
+            if exc.returncode != 0:
+                log.error("Error: {}. Could not collect cilium endpoints {}"
+                          .format(exc, cep_file_name))
+        else:
+            log.info("collected cilium endpoints: {}".format(cep_file_name))
+
     def collect_daemonset_yaml(self):
         daemonset_file_name = "cilium-ds-{}.yaml".format(
             utils.get_current_time())
@@ -272,6 +285,8 @@ class SysdumpCollector(object):
         self.collect_gops_stats("cilium-")
         log.info("collecting cilium network policy ...")
         self.collect_cnp()
+        log.info("collecting cilium endpoints ...")
+        self.collect_cep()
         log.info("collecting cilium daemonset yaml ...")
         self.collect_daemonset_yaml()
         log.info("collecting cilium configmap yaml ...")
