@@ -13,8 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import logging
 import re
+import os
 import shutil
 import subprocess
 import utils
@@ -181,7 +183,8 @@ class SysdumpCollector(object):
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError as exc:
             if exc.returncode != 0:
-                log.error("Error: {}. Unable to get cilium daemonset yaml")
+                log.error("Error: {}. Unable to get cilium daemonset yaml"
+                          .format(exc))
         else:
             log.info("collected cilium daemonset yaml file: {}".format(
                 daemonset_file_name))
@@ -195,10 +198,33 @@ class SysdumpCollector(object):
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError as exc:
             if exc.returncode != 0:
-                log.error("Error: {}. Unable to get cilium configmap yaml")
+                log.error("Error: {}. Unable to get cilium configmap yaml"
+                          .format(exc))
         else:
             log.info("collected cilium configmap yaml file: {}".format(
                 configmap_file_name))
+
+    def collect_cilium_secret(self):
+        secret_file_name = "cilium-etcd-secrets-{}.json".format(
+            utils.get_current_time())
+        cmd = "kubectl get secret cilium-etcd-secrets -n kube-system -o json"
+        try:
+            output = json.loads(subprocess.check_output(cmd, shell=True))
+            data = {}
+            for key, value in output.get('data').iteritems():
+                data[key] = "XXXXX"
+            output['data'] = data
+            with open(
+                os.path.join(self.sysdump_dir_name, secret_file_name), 'w') as fp:
+                fp.write(json.dumps(output))
+        except subprocess.CalledProcessError as exc:
+            if exc.returncode != 0:
+                log.error("Error: {}. Unable to get and redact cilium secret"
+                          .format(exc))
+        else:
+            log.info("collected and redacted cilium secret file: {}".format(
+                secret_file_name))
+
 
     def collect_cilium_bugtool_output(self):
         for name, _, _, _ in \
@@ -285,6 +311,8 @@ class SysdumpCollector(object):
         self.collect_gops_stats("cilium-")
         log.info("collecting cilium network policy ...")
         self.collect_cnp()
+        log.info("collecting cilium etcd secret ...")
+        self.collect_cilium_secret()
         log.info("collecting cilium endpoints ...")
         self.collect_cep()
         log.info("collecting cilium daemonset yaml ...")
