@@ -283,10 +283,10 @@ class SysdumpCollector(object):
             log.info("collected svc overview: {}".format(svc_file_name))
 
     def collect_k8s_version_info(self):
-        version_file_name = "k8s-version-info-{}.yaml".format(
+        version_file_name = "k8s-version-info-{}.txt".format(
             utils.get_current_time())
-        cmd = "kubectl version -oyaml > {}/{}".format(self.sysdump_dir_name,
-                                                      version_file_name)
+        cmd = "kubectl version > {}/{}".format(self.sysdump_dir_name,
+                                               version_file_name)
         try:
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError as exc:
