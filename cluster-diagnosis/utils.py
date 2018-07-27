@@ -237,7 +237,8 @@ def get_pods_status_iterator_by_labels(label_selector, must_exist=True):
     """Returns an iterator to the status of pods selected with the label selector.
 
     Args:
-        label_selector - the labels used to select the pods. e.g. "k8s-app=cilium, kubernetes.io/cluster-service=true"
+        label_selector - the labels used to select the pods.
+        e.g. "k8s-app=cilium, kubernetes.io/cluster-service=true"
         must_exist - boolean to indicate that a pod with that name must exist.
             If the condition isn't satisfied, an error will be logged.
 
@@ -258,8 +259,9 @@ def get_pods_status_iterator_by_labels(label_selector, must_exist=True):
     output = encoded_output.decode()
     if output == "":
         if must_exist:
-            log.error("no pods with labels {} are running on the cluster".format(
-                label_selector))
+            log.error("no pods with labels "
+                      "{} are running on the cluster".format(
+                        label_selector))
         return
     for line in output.splitlines():
         # Example line:

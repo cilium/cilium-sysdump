@@ -215,7 +215,8 @@ class SysdumpCollector(object):
                 data[key] = "XXXXX"
             output['data'] = data
             with open(
-                os.path.join(self.sysdump_dir_name, secret_file_name), 'w') as fp:
+                os.path.join(self.sysdump_dir_name,
+                             secret_file_name), 'w') as fp:
                 fp.write(json.dumps(output))
         except subprocess.CalledProcessError as exc:
             if exc.returncode != 0:
@@ -224,7 +225,6 @@ class SysdumpCollector(object):
         else:
             log.info("collected and redacted cilium secret file: {}".format(
                 secret_file_name))
-
 
     def collect_cilium_bugtool_output(self):
         for name, _, _, _ in \
