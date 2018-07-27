@@ -37,7 +37,7 @@ def check_pod_running_cb(nodes):
     ret_code = True
     pod_not_seen_on_nodes = nodes[:]
     for name, ready_status, status, node_name in \
-            utils.get_pods_summarized_status_iterator("cilium-"):
+            utils.get_pods_summarized_status_iterator("k8s-app=cilium"):
         try:
             pod_not_seen_on_nodes.remove(node_name)
         except ValueError:
@@ -110,7 +110,7 @@ def check_access_log_config_cb():
     """
     ret_code = True
     for name, ready_status, status, node_name in \
-            utils.get_pods_status_iterator("cilium-"):
+            utils.get_pods_status_iterator_by_labels("k8s-app=cilium"):
         # TODO: Add volume checks.
         config = utils.get_pod_config(name)
         if not config:
@@ -149,8 +149,8 @@ def check_drop_notifications_enabled_cb():
         True if successful, False otherwise.
     """
     ret_code = True
-    for name, ready_status, status, node_name in\
-            utils.get_pods_status_iterator("cilium-"):
+    for name, ready_status, status, node_name in \
+            utils.get_pods_status_iterator_by_labels("k8s-app=cilium"):
         cmd = "kubectl exec -it " + name + \
               " -n kube-system cilium config " \
               "| grep DropNotification | awk '{print $2}'"
@@ -192,8 +192,8 @@ def check_trace_notifications_enabled_cb():
         True if successful, False otherwise.
     """
     ret_code = True
-    for name, ready_status, status, node_name in\
-            utils.get_pods_status_iterator("cilium-"):
+    for name, ready_status, status, node_name in \
+            utils.get_pods_status_iterator_by_labels("k8s-app=cilium"):
         cmd = "kubectl exec -it " + name + \
               " -n kube-system cilium config " \
               "| grep TraceNotification | awk '{print $2}'"
@@ -235,10 +235,10 @@ def check_cilium_version_cb():
         True if successful, False otherwise.
     """
     ret_code = True
-    for name, ready_status, status, node_name in\
-            utils.get_pods_status_iterator("cilium-"):
+    for name, ready_status, status, node_name in \
+            utils.get_pods_status_iterator_by_labels("k8s-app=cilium"):
         cmd = "kubectl describe pod " + name + \
-              " -n kube-system | grep Image: | " \
+              " -n kube-system | grep \"Image:.*docker.io/cilium/cilium\" | " \
               "awk '{print $2}' | awk -F ':' '{print $2}'"
         output = ""
         try:
