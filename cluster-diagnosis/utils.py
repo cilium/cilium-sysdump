@@ -155,7 +155,7 @@ class PodStatus(PodStatus_):
     pass
 
 
-def get_pods_summarized_status_iterator(pod_name_substring):
+def get_pods_summarized_status_iterator(label_selector):
     """Returns a summarized status of the pods by retrieving the status
     multiple times.
 
@@ -163,7 +163,7 @@ def get_pods_summarized_status_iterator(pod_name_substring):
     in the scenario wherein the status is checked just after a pod restart.
 
     Args:
-        pod_name_substring - the substring containing the pod name.
+        label_selector - the label selector to select the pods.
 
     Returns:
         An object of type PodStatus.
@@ -176,7 +176,7 @@ def get_pods_summarized_status_iterator(pod_name_substring):
         sys.stdout.write('.')
         sys.stdout.flush()
         for pod_status in \
-                get_pods_status_iterator(pod_name_substring, False):
+                get_pods_status_iterator_by_labels(label_selector, False):
             status_verdict = STATUS_RUNNING
             try:
                 temp_pod_status = get_pod_status(pod_status.name)
@@ -233,45 +233,43 @@ def get_pod_status(full_pod_name):
                      node_name=split_line[-1])
 
 
-def get_pods_status_iterator(pod_name_substring, must_exist=True):
-    """Returns an iterator to the status of pods.
+def get_pods_status_iterator_by_labels(label_selector, must_exist=True):
+    """Returns an iterator to the status of pods selected with the label selector.
 
     Args:
-        pod_name_substring - the substring containing the pod name.
+        label_selector - the labels used to select the pods. e.g. "k8s-app=cilium, kubernetes.io/cluster-service=true"
         must_exist - boolean to indicate that a pod with that name must exist.
             If the condition isn't satisfied, an error will be logged.
 
     Returns:
         An object of type PodStatus.
     """
-    cmd = "kubectl get pods -o wide --all-namespaces " \
-          "| grep " + pod_name_substring + " | " \
+    cmd = "kubectl get pods --no-headers -o wide --all-namespaces " \
+          "--selector=" + label_selector + " | " \
           "awk '{print $2 \" \" $3 \" \" $4 \" \" $NF}'"
     try:
         encoded_output = subprocess.check_output(cmd, shell=True)
     except subprocess.CalledProcessError as exc:
         log.error("command to get status of {} has "
                   "failed. error code: "
-                  "{} {}".format(pod_name_substring,
+                  "{} {}".format(label_selector,
                                  exc.returncode, exc.output))
         return
     output = encoded_output.decode()
     if output == "":
         if must_exist:
-            log.error("no {} pods are running on the cluster".format(
-                pod_name_substring))
+            log.error("no pods with labels {} are running on the cluster".format(
+                label_selector))
         return
     for line in output.splitlines():
         # Example line:
         # name-blah-sr64c 0/1 CrashLoopBackOff
         # ip-172-0-33-255.us-west-2.compute.internal
         split_line = line.split(' ')
-        pattern = re.compile("^" + pod_name_substring)
-        if pattern.match(split_line[0]) is not None:
-            yield PodStatus(name=split_line[0],
-                            ready_status=split_line[1],
-                            status=split_line[2],
-                            node_name=split_line[-1])
+        yield PodStatus(name=split_line[0],
+                        ready_status=split_line[1],
+                        status=split_line[2],
+                        node_name=split_line[-1])
 
 
 def getopts(argv):

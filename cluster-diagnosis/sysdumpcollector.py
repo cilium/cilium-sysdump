@@ -87,9 +87,9 @@ class SysdumpCollector(object):
             log.info("collected pods summary: {}"
                      .format(pods_summary_file_name))
 
-    def collect_logs(self, pod_name_prefix):
+    def collect_logs(self, label_selector):
         for name, _, _, _ in \
-                utils.get_pods_status_iterator(pod_name_prefix):
+                utils.get_pods_status_iterator_by_labels(label_selector):
             log_file_name = "{}-{}".format(name,
                                            utils.get_current_time())
             command = "kubectl logs {} --timestamps=true --since={} " \
@@ -123,14 +123,14 @@ class SysdumpCollector(object):
                 log.info("collected log file: {}".format(
                     log_file_name_previous))
 
-    def collect_gops_stats(self, pod_name_prefix):
-        self.collect_gops(pod_name_prefix, "stats")
-        self.collect_gops(pod_name_prefix, "memstats")
-        self.collect_gops(pod_name_prefix, "stack")
+    def collect_gops_stats(self, label_selector):
+        self.collect_gops(label_selector, "stats")
+        self.collect_gops(label_selector, "memstats")
+        self.collect_gops(label_selector, "stack")
 
-    def collect_gops(self, pod_name_prefix, type_of_stat):
+    def collect_gops(self, label_selector, type_of_stat):
         for name, _, _, _ in \
-                utils.get_pods_status_iterator(pod_name_prefix):
+                utils.get_pods_status_iterator_by_labels(label_selector):
             file_name = "{}-{}-{}.txt".format(name,
                                               utils.get_current_time(),
                                               type_of_stat)
@@ -228,7 +228,7 @@ class SysdumpCollector(object):
 
     def collect_cilium_bugtool_output(self):
         for name, _, _, _ in \
-                utils.get_pods_status_iterator("cilium-"):
+                utils.get_pods_status_iterator_by_labels("k8s-app=cilium"):
             bugtool_output_file_name = "bugtool-{}-{}.tar".format(
                 name, utils.get_current_time())
             cmd = "kubectl exec -n kube-system -it {} cilium-bugtool".format(
@@ -308,7 +308,7 @@ class SysdumpCollector(object):
         log.info("collecting services overview ...")
         self.collect_services_overview()
         log.info("collecting cilium gops stats ...")
-        self.collect_gops_stats("cilium-")
+        self.collect_gops_stats("k8s-app=cilium")
         log.info("collecting cilium network policy ...")
         self.collect_cnp()
         log.info("collecting cilium etcd secret ...")
@@ -322,7 +322,7 @@ class SysdumpCollector(object):
         log.info("collecting cilium-bugtool output ...")
         self.collect_cilium_bugtool_output()
         log.info("collecting cilium logs ...")
-        self.collect_logs("cilium-")
+        self.collect_logs("k8s-app=cilium")
 
     def archive(self):
         shutil.make_archive(self.sysdump_dir_name, 'zip',

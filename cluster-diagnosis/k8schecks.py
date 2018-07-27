@@ -76,7 +76,7 @@ def check_rbac_cb():
     """
     ret_code = True
     for name, ready_status, status, node_name in \
-            utils.get_pods_status_iterator("kube-apiserver-", False):
+            utils.get_pods_status_iterator_by_labels("component=kube-apiserver", False):
         cmd = "kubectl describe pod " + name + \
               " -n kube-system"
         try:
