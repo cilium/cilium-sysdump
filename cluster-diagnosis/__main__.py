@@ -56,6 +56,9 @@ if __name__ == "__main__":
                                     help='size limit (bytes) for the '
                                          'collected logs',
                                     default=256 * 1024 * 1024)
+        parser_sysdump.add_argument('--output',
+                                    help='Output filename without '
+                                         ' .zip extension')
 
     args = parser.parse_args()
     try:
@@ -67,7 +70,8 @@ if __name__ == "__main__":
             sysdumpcollector = sysdumpcollector.SysdumpCollector(
                 sysdump_dir_name,
                 args.since,
-                args.size_limit)
+                args.size_limit,
+                args.output)
             sysdumpcollector.collect()
             sysdumpcollector.archive()
             sys.exit(0)
