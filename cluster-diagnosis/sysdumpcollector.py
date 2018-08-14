@@ -37,10 +37,11 @@ class SysdumpCollector(object):
 
     def __init__(
             self,
-            sysdump_dir_name, since, size_limit):
+            sysdump_dir_name, since, size_limit, output):
         self.sysdump_dir_name = sysdump_dir_name
         self.since = since
         self.size_limit = size_limit
+        self.output = output
 
     def collect_nodes_overview(self):
         nodes_overview_file_name = "nodes-{}.json".format(
@@ -325,9 +326,10 @@ class SysdumpCollector(object):
         self.collect_logs("k8s-app=cilium")
 
     def archive(self):
-        shutil.make_archive(self.sysdump_dir_name, 'zip',
-                            self.sysdump_dir_name)
+        filename = self.output or self.sysdump_dir_name
+        archive_name = shutil.make_archive(filename, 'zip',
+                                           self.sysdump_dir_name)
         log.info("deleting directory: {}".format(self.sysdump_dir_name))
         shutil.rmtree(self.sysdump_dir_name)
-        log.info("the sysdump has been saved in the file {}.zip."
-                 .format(self.sysdump_dir_name))
+        log.info("the sysdump has been saved in the file {}."
+                 .format(archive_name))
