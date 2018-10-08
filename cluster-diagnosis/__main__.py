@@ -28,6 +28,15 @@ log = logging.getLogger(__name__)
 exit_code = 0
 
 
+def getBool(v):
+    if v.lower() in ('yes', 'true'):
+        return True
+    elif v.lower() in ('no', 'false'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Expected true or false.')
+
+
 if __name__ == "__main__":
     if sys.version_info < (2, 7, 0):
         sys.stderr.write("You need python 2.7+ to run this script\n")
@@ -45,20 +54,24 @@ if __name__ == "__main__":
         subparsers = parser.add_subparsers(dest='sysdump')
         subparsers.required = False
         parser_sysdump = subparsers.add_parser('sysdump',
-                                               help='collect logs and other '
-                                                    'useful information')
+                                               help='Collect logs and other '
+                                                    'useful information.')
         parser_sysdump.add_argument('--since',
                                     help='Only return logs newer than a '
                                          'relative duration like 5s, 2m, or'
-                                         ' 3h. Defaults to all logs.',
-                                    default='12h')
+                                         ' 3h. Defaults to 30m.',
+                                    default='30m')
         parser_sysdump.add_argument('--size-limit', type=int,
                                     help='size limit (bytes) for the '
-                                         'collected logs',
-                                    default=256 * 1024 * 1024)
+                                         'collected logs. '
+                                         'Defaults to 1048576 (1MB).',
+                                    default=1 * 1024 * 1024)
         parser_sysdump.add_argument('--output',
                                     help='Output filename without '
                                          ' .zip extension')
+        parser_sysdump.add_argument('--quick', type=getBool, default="false",
+                                    help='Enable quick mode. '
+                                         'Defaults to "false".')
 
     args = parser.parse_args()
     try:
@@ -71,7 +84,8 @@ if __name__ == "__main__":
                 sysdump_dir_name,
                 args.since,
                 args.size_limit,
-                args.output)
+                args.output,
+                args.quick)
             sysdumpcollector.collect()
             sysdumpcollector.archive()
             sys.exit(0)
