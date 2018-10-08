@@ -22,6 +22,7 @@ import argparse
 import sysdumpcollector
 import os
 import time
+import distutils.util
 
 
 log = logging.getLogger(__name__)
@@ -45,20 +46,25 @@ if __name__ == "__main__":
         subparsers = parser.add_subparsers(dest='sysdump')
         subparsers.required = False
         parser_sysdump = subparsers.add_parser('sysdump',
-                                               help='collect logs and other '
-                                                    'useful information')
+                                               help='Collect logs and other '
+                                                    'useful information.')
         parser_sysdump.add_argument('--since',
                                     help='Only return logs newer than a '
                                          'relative duration like 5s, 2m, or'
-                                         ' 3h. Defaults to all logs.',
-                                    default='12h')
+                                         ' 3h. Defaults to 30m.',
+                                    default='30m')
         parser_sysdump.add_argument('--size-limit', type=int,
                                     help='size limit (bytes) for the '
-                                         'collected logs',
-                                    default=256 * 1024 * 1024)
+                                         'collected logs. '
+                                         'Defaults to 1048576 (1MB).',
+                                    default=1 * 1024 * 1024)
         parser_sysdump.add_argument('--output',
                                     help='Output filename without '
                                          ' .zip extension')
+        parser_sysdump.add_argument('--quick', type=distutils.util.strtobool,
+                                    default="false",
+                                    help='Enable quick mode. '
+                                         'Defaults to "false".')
 
     args = parser.parse_args()
     try:
@@ -71,7 +77,8 @@ if __name__ == "__main__":
                 sysdump_dir_name,
                 args.since,
                 args.size_limit,
-                args.output)
+                args.output,
+                args.quick)
             sysdumpcollector.collect()
             sysdumpcollector.archive()
             sys.exit(0)

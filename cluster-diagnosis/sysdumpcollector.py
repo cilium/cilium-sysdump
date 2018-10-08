@@ -37,11 +37,12 @@ class SysdumpCollector(object):
 
     def __init__(
             self,
-            sysdump_dir_name, since, size_limit, output):
+            sysdump_dir_name, since, size_limit, output, is_quick_mode):
         self.sysdump_dir_name = sysdump_dir_name
         self.since = since
         self.size_limit = size_limit
         self.output = output
+        self.is_quick_mode = is_quick_mode
 
     def collect_nodes_overview(self):
         nodes_overview_file_name = "nodes-{}.json".format(
@@ -319,6 +320,9 @@ class SysdumpCollector(object):
         log.info("collecting cilium daemonset yaml ...")
         self.collect_daemonset_yaml()
         log.info("collecting cilium configmap yaml ...")
+        if self.is_quick_mode:
+            return
+        # Time-consuming collect actions go here.
         self.collect_cilium_configmap()
         log.info("collecting cilium-bugtool output ...")
         self.collect_cilium_bugtool_output()
