@@ -320,10 +320,10 @@ class SysdumpCollector(object):
         log.info("collecting cilium daemonset yaml ...")
         self.collect_daemonset_yaml()
         log.info("collecting cilium configmap yaml ...")
+        self.collect_cilium_configmap()
         if self.is_quick_mode:
             return
         # Time-consuming collect actions go here.
-        self.collect_cilium_configmap()
         log.info("collecting cilium-bugtool output ...")
         self.collect_cilium_bugtool_output()
         log.info("collecting cilium logs ...")
