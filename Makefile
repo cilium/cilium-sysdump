@@ -14,7 +14,10 @@
 
 .PHONY: build
 
-build: clean
+check:
+	/usr/local/bin/pycodestyle .
+
+build: clean check
 	cd cluster-diagnosis/ && zip -r ../cluster-diagnosis.zip *
 
 clean:
