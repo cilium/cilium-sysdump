@@ -49,7 +49,7 @@ def check_kube_apiserver_version_cb():
                 major_version = int(match.group(1))
                 minor_version = int(match.group(2))
                 if major_version != 1 or (
-                    major_version == 1 and minor_version < 8):
+                      major_version == 1 and minor_version < 8):
                     log.error("the kube-apiserver version is {}.{}. "
                               "We need a version >= 1.8.".format(
                                   major_version, minor_version))
