@@ -234,7 +234,8 @@ def get_pod_status(full_pod_name):
 
 
 def get_pods_status_iterator_by_labels(label_selector, must_exist=True):
-    """Returns an iterator to the status of pods selected with the label selector.
+    """Returns an iterator to the status of pods selected with the
+    label selector.
 
     Args:
         label_selector - the labels used to select the pods.

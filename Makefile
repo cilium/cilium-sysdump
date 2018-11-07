@@ -14,8 +14,11 @@
 
 .PHONY: build
 
-check:
-	/usr/local/bin/pycodestyle .
+check: check-tools
+	pycodestyle .
+
+check-tools:
+	command -v pycodestyle >/dev/null 2>&1 || { echo "Package pycodestyle not installed. Aborting." >&2; exit 1; }
 
 build: clean check
 	cd cluster-diagnosis/ && zip -r ../cluster-diagnosis.zip *
