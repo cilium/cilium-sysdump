@@ -15,12 +15,16 @@
 
 import json
 import logging
+import multiprocessing
 import re
 import os
+import functools
 import shutil
 import subprocess
+import sys
 import utils
 
+from multiprocessing.pool import ThreadPool
 
 log = logging.getLogger(__name__)
 
@@ -90,40 +94,46 @@ class SysdumpCollector(object):
                      .format(pods_summary_file_name))
 
     def collect_logs(self, label_selector):
-        for name, _, _, _ in \
-                utils.get_pods_status_iterator_by_labels(label_selector):
-            log_file_name = "{}-{}".format(name,
-                                           utils.get_current_time())
-            command = "kubectl logs {} --timestamps=true --since={} " \
-                "--limit-bytes={} -n kube-system {} > {}/{}.log"
-            cmd = command.format(
-                "", self.since, self.size_limit, name,
-                self.sysdump_dir_name, log_file_name)
-            try:
-                subprocess.check_output(cmd, shell=True)
-            except subprocess.CalledProcessError as exc:
-                if exc.returncode != 0:
-                    log.error("Error: {}. Could not collect log file: {}"
-                              .format(exc, log_file_name))
-            else:
-                log.info("collected log file: {}".format(log_file_name))
+        pool = ThreadPool(multiprocessing.cpu_count() - 1)
+        pool.map(
+            self.collect_logs_per_pod,
+            utils.get_pods_status_iterator_by_labels(label_selector))
+        pool.close()
+        pool.join()
 
-            # Previous containers
-            log_file_name_previous = "{0}-previous".format(log_file_name)
-            cmd = command.format(
-                "--previous", self.since, self.size_limit, name,
-                self.sysdump_dir_name, log_file_name_previous)
-            try:
-                subprocess.check_output(cmd, shell=True)
-            except subprocess.CalledProcessError as exc:
-                if exc.returncode != 0:
-                    log.debug(
-                        "Debug: {}. Could not collect previous "
-                        "log for '{}': {}"
-                        .format(exc, name, log_file_name))
-            else:
-                log.info("collected log file: {}".format(
-                    log_file_name_previous))
+    def collect_logs_per_pod(self, podstatus):
+        log_file_name = "{}-{}".format(podstatus[0],
+                                       utils.get_current_time())
+        command = "kubectl logs {} --timestamps=true --since={} " \
+            "--limit-bytes={} -n kube-system {} > {}/{}.log"
+        cmd = command.format(
+            "", self.since, self.size_limit, podstatus[0],
+            self.sysdump_dir_name, log_file_name)
+        try:
+            subprocess.check_output(cmd, shell=True)
+        except subprocess.CalledProcessError as exc:
+            if exc.returncode != 0:
+                log.error("Error: {}. Could not collect log file: {}"
+                          .format(exc, log_file_name))
+        else:
+            log.info("collected log file: {}".format(log_file_name))
+
+        # Previous containers
+        log_file_name_previous = "{0}-previous".format(log_file_name)
+        cmd = command.format(
+            "--previous", self.since, self.size_limit, podstatus[0],
+            self.sysdump_dir_name, log_file_name_previous)
+        try:
+            subprocess.check_output(cmd, shell=True)
+        except subprocess.CalledProcessError as exc:
+            if exc.returncode != 0:
+                log.debug(
+                    "Debug: {}. Could not collect previous "
+                    "log for '{}': {}"
+                    .format(exc, podstatus[0], log_file_name))
+        else:
+            log.info("collected log file: {}".format(
+                log_file_name_previous))
 
     def collect_gops_stats(self, label_selector):
         self.collect_gops(label_selector, "stats")
@@ -131,14 +141,25 @@ class SysdumpCollector(object):
         self.collect_gops(label_selector, "stack")
 
     def collect_gops(self, label_selector, type_of_stat):
-        for name, _, _, _ in \
-                utils.get_pods_status_iterator_by_labels(label_selector):
-            file_name = "{}-{}-{}.txt".format(name,
-                                              utils.get_current_time(),
-                                              type_of_stat)
-            cmd = "kubectl exec -it -n kube-system {} -- " \
+        pool = ThreadPool(multiprocessing.cpu_count() - 1)
+        pool.map(
+            functools.partial(self.collect_gops_per_pod,
+                              type_of_stat=type_of_stat),
+            utils.get_pods_status_iterator_by_labels(label_selector))
+        pool.close()
+        pool.join()
+
+    def collect_gops_per_pod(self, podstatus, type_of_stat):
+            file_name = "{}-{}-{}.txt".format(
+                podstatus[0],
+                utils.get_current_time(),
+                type_of_stat)
+            cmd = "kubectl exec -n kube-system {} -- " \
                   "/bin/gops {} 1 > {}/{}".format(
-                      name, type_of_stat, self.sysdump_dir_name, file_name)
+                      podstatus[0],
+                      type_of_stat,
+                      self.sysdump_dir_name,
+                      file_name)
             try:
                 subprocess.check_output(cmd, shell=True)
             except subprocess.CalledProcessError as exc:
@@ -228,48 +249,54 @@ class SysdumpCollector(object):
             log.info("collected and redacted cilium secret file: {}".format(
                 secret_file_name))
 
-    def collect_cilium_bugtool_output(self):
-        for name, _, _, _ in \
-                utils.get_pods_status_iterator_by_labels("k8s-app=cilium"):
-            bugtool_output_file_name = "bugtool-{}-{}.tar".format(
-                name, utils.get_current_time())
-            cmd = "kubectl exec -n kube-system -it {} cilium-bugtool".format(
-                name)
+    def collect_cilium_bugtool_output(self, label_selector):
+        pool = ThreadPool(multiprocessing.cpu_count() - 1)
+        pool.map(
+            self.collect_cilium_bugtool_output_per_pod,
+            utils.get_pods_status_iterator_by_labels(label_selector))
+        pool.close()
+        pool.join()
+
+    def collect_cilium_bugtool_output_per_pod(self, podstatus):
+        bugtool_output_file_name = "bugtool-{}-{}.tar".format(
+            podstatus[0], utils.get_current_time())
+        cmd = "kubectl exec -n kube-system {} cilium-bugtool".format(
+            podstatus[0])
+        try:
+            encoded_output = subprocess.check_output(cmd.split(), shell=False)
+        except subprocess.CalledProcessError as exc:
+            if exc.returncode != 0:
+                log.error(
+                    "Error: {}. Could not run cilium-bugtool on {}"
+                    .format(exc, podstatus[0]))
+        else:
+            output = encoded_output.decode()
+            p = re.compile(
+                "^ARCHIVE at (.*)$")
+            output_file_name = ""
+            for line in output.splitlines():
+                match = p.search(line)
+                if match:
+                    output_file_name = match.group(1)
+            if output_file_name == "":
+                log.error(
+                    "Error: {}. Could not find cilium-bugtool output"
+                    " file name".format(exc))
+
+            cmd = "kubectl cp kube-system/{}:{} ./{}/{}".format(
+                podstatus[0], output_file_name, self.sysdump_dir_name,
+                bugtool_output_file_name)
             try:
-                encoded_output = subprocess.check_output(cmd, shell=True)
+                subprocess.check_output(cmd.split(), shell=False)
             except subprocess.CalledProcessError as exc:
                 if exc.returncode != 0:
                     log.error(
-                        "Error: {}. Could not run cilium-bugtool on {}"
-                        .format(exc, name))
+                        "Error: {} Could not collect cilium-bugtool"
+                        " output: {}".format(
+                            exc, bugtool_output_file_name))
             else:
-                output = encoded_output.decode()
-                p = re.compile(
-                    "^ARCHIVE at (.*)$")
-                output_file_name = ""
-                for line in output.splitlines():
-                    match = p.search(line)
-                    if match:
-                        output_file_name = match.group(1)
-                if output_file_name == "":
-                    log.error(
-                        "Error: {}. Could not find cilium-bugtool output"
-                        " file name".format(exc))
-
-                cmd = "kubectl cp kube-system/{}:{} ./{}/{}".format(
-                    name, output_file_name, self.sysdump_dir_name,
-                    bugtool_output_file_name)
-                try:
-                    subprocess.check_output(cmd, shell=True)
-                except subprocess.CalledProcessError as exc:
-                    if exc.returncode != 0:
-                        log.error(
-                            "Error: {} Could not collect cilium-bugtool"
-                            " output: {}".format(
-                                exc, bugtool_output_file_name))
-                else:
-                    log.info("collected cilium-bugtool output: {}".format(
-                        bugtool_output_file_name))
+                log.info("collected cilium-bugtool output: {}".format(
+                    bugtool_output_file_name))
 
     def collect_services_overview(self):
         svc_file_name = "services-{}.yaml".format(
@@ -325,7 +352,7 @@ class SysdumpCollector(object):
             return
         # Time-consuming collect actions go here.
         log.info("collecting cilium-bugtool output ...")
-        self.collect_cilium_bugtool_output()
+        self.collect_cilium_bugtool_output("k8s-app=cilium")
         log.info("collecting cilium logs ...")
         self.collect_logs("k8s-app=cilium")
 
