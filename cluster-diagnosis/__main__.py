@@ -85,6 +85,7 @@ if __name__ == "__main__":
             sysdumpcollector.archive()
             sys.exit(0)
     except AttributeError:
+        log.exception("Fatal error in collecting logs")
         pass
     nodes = utils.get_nodes()
 
