@@ -84,8 +84,15 @@ if __name__ == "__main__":
             sysdumpcollector.collect()
             sysdumpcollector.archive()
             sys.exit(0)
-    except AttributeError:
-        pass
+    except AttributeError as e:
+        error_string = str(e)
+        # This change makes sure we *only* ignore attribute
+        # exceptions related to the args.sysdump workaround.
+        if (error_string.find('sysdump') != -1):
+            pass
+        else:
+            log.exception("Fatal error in collecting sysdump")
+            sys.exit(1)
     nodes = utils.get_nodes()
 
     k8s_check_grp = utils.ModuleCheckGroup("k8s")
