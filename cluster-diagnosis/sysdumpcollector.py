@@ -269,19 +269,19 @@ class SysdumpCollector(object):
                 log.error(
                     "Error: {}. Could not run cilium-bugtool on {}"
                     .format(exc, podstatus[0]))
-        else:
-            output = encoded_output.decode()
-            p = re.compile(
-                "^ARCHIVE at (.*)$")
-            output_file_name = ""
-            for line in output.splitlines():
-                match = p.search(line)
-                if match:
-                    output_file_name = match.group(1)
-            if output_file_name == "":
-                log.error(
-                    "Error: {}. Could not find cilium-bugtool output"
-                    " file name".format(exc))
+            else:
+                output = encoded_output.decode()
+                p = re.compile(
+                    "^ARCHIVE at (.*)$")
+                output_file_name = ""
+                for line in output.splitlines():
+                    match = p.search(line)
+                    if match:
+                        output_file_name = match.group(1)
+                if output_file_name == "":
+                    log.error(
+                        "Error: {}. Could not find cilium-bugtool output"
+                        " file name".format(exc))
 
             cmd = "kubectl cp kube-system/{}:{} ./{}/{}".format(
                 podstatus[0], output_file_name, self.sysdump_dir_name,
