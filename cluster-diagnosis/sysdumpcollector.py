@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import namespace
 
 import json
 import logging
@@ -21,7 +22,6 @@ import os
 import functools
 import shutil
 import subprocess
-import sys
 import utils
 
 from multiprocessing.pool import ThreadPool
@@ -105,9 +105,9 @@ class SysdumpCollector(object):
         log_file_name = "{}-{}".format(podstatus[0],
                                        utils.get_current_time())
         command = "kubectl logs {} --timestamps=true --since={} " \
-            "--limit-bytes={} -n kube-system {} > {}/{}.log"
+            "--limit-bytes={} -n {} {} > {}/{}.log"
         cmd = command.format(
-            "", self.since, self.size_limit, podstatus[0],
+            "", self.since, self.size_limit, namespace.name, podstatus[0],
             self.sysdump_dir_name, log_file_name)
         try:
             subprocess.check_output(cmd, shell=True)
@@ -121,7 +121,8 @@ class SysdumpCollector(object):
         # Previous containers
         log_file_name_previous = "{0}-previous".format(log_file_name)
         cmd = command.format(
-            "--previous", self.since, self.size_limit, podstatus[0],
+            "--previous", self.since, self.size_limit, namespace.name,
+            podstatus[0],
             self.sysdump_dir_name, log_file_name_previous)
         try:
             subprocess.check_output(cmd, shell=True)
@@ -154,8 +155,9 @@ class SysdumpCollector(object):
                 podstatus[0],
                 utils.get_current_time(),
                 type_of_stat)
-            cmd = "kubectl exec -n kube-system {} -- " \
+            cmd = "kubectl exec -n {} {} -- " \
                   "/bin/gops {} 1 > {}/{}".format(
+                      namespace.name,
                       podstatus[0],
                       type_of_stat,
                       self.sysdump_dir_name,
@@ -200,8 +202,8 @@ class SysdumpCollector(object):
     def collect_daemonset_yaml(self):
         daemonset_file_name = "cilium-ds-{}.yaml".format(
             utils.get_current_time())
-        cmd = "kubectl get ds cilium -n kube-system -oyaml > {}/{}".format(
-            self.sysdump_dir_name, daemonset_file_name)
+        cmd = "kubectl get ds cilium -n {} -oyaml > {}/{}".format(
+            namespace.name, self.sysdump_dir_name, daemonset_file_name)
         try:
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError as exc:
@@ -215,8 +217,9 @@ class SysdumpCollector(object):
     def collect_cilium_configmap(self):
         configmap_file_name = "cilium-configmap-{}.yaml".format(
             utils.get_current_time())
-        cmd = "kubectl get configmap cilium-config -n kube-system -oyaml " \
-              "> {}/{}".format(self.sysdump_dir_name, configmap_file_name)
+        cmd = "kubectl get configmap cilium-config -n {} -oyaml " \
+              "> {}/{}".format(namespace.name,
+                               self.sysdump_dir_name, configmap_file_name)
         try:
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError as exc:
@@ -230,7 +233,8 @@ class SysdumpCollector(object):
     def collect_cilium_secret(self):
         secret_file_name = "cilium-etcd-secrets-{}.json".format(
             utils.get_current_time())
-        cmd = "kubectl get secret cilium-etcd-secrets -n kube-system -o json"
+        cmd = "kubectl get secret cilium-etcd-secrets -n {} -o json".format(
+            namespace.name)
         try:
             output = json.loads(subprocess.check_output(cmd, shell=True))
             data = {}
@@ -260,8 +264,8 @@ class SysdumpCollector(object):
     def collect_cilium_bugtool_output_per_pod(self, podstatus):
         bugtool_output_file_name = "bugtool-{}-{}.tar".format(
             podstatus[0], utils.get_current_time())
-        cmd = "kubectl exec -n kube-system {} cilium-bugtool".format(
-            podstatus[0])
+        cmd = "kubectl exec -n {}, {} cilium-bugtool".format(
+            namespace.name, podstatus[0])
         try:
             encoded_output = subprocess.check_output(cmd.split(), shell=False)
         except subprocess.CalledProcessError as exc:
@@ -283,8 +287,9 @@ class SysdumpCollector(object):
                     "Error: {}. Could not find cilium-bugtool output"
                     " file name".format(exc))
 
-            cmd = "kubectl cp kube-system/{}:{} ./{}/{}".format(
-                podstatus[0], output_file_name, self.sysdump_dir_name,
+            cmd = "kubectl cp {}/{}:{} ./{}/{}".format(
+                namespace.name, podstatus[0], output_file_name,
+                self.sysdump_dir_name,
                 bugtool_output_file_name)
             try:
                 subprocess.check_output(cmd.split(), shell=False)

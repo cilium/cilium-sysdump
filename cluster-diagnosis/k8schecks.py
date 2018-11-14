@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import namespace
 
 import subprocess
 import utils
@@ -77,8 +78,7 @@ def check_rbac_cb():
     for name, ready_status, status, node_name in \
             utils.get_pods_status_iterator_by_labels(
                 "component=kube-apiserver", False):
-        cmd = "kubectl describe pod " + name + \
-              " -n kube-system"
+        cmd = "kubectl describe pod {} -n {}".format(name, namespace.name)
         try:
             encoded_output = subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError as exc:
