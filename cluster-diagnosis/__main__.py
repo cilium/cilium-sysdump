@@ -16,6 +16,7 @@
 import utils
 import ciliumchecks
 import k8schecks
+import namespace
 import logging
 import sys
 import argparse
@@ -36,6 +37,8 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Cluster diagnosis '
                                                  'tool.')
+
+    parser.add_argument('--namespace', type=str, default='kube-system')
     # Add an optional subparser for the sysdump command.
     # Optional subparsers are only supported in Python 3.3+.
     # Python 2.7 optional subparsers implementation has bugs,
@@ -69,6 +72,7 @@ if __name__ == "__main__":
                                          'Defaults to "false".')
 
     args = parser.parse_args()
+    namespace.name = args.namespace
     try:
         if args.sysdump:
             sysdump_dir_name = "./cilium-sysdump-{}"\

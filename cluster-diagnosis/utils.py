@@ -12,13 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import namespace
 
 import collections
 import sys
 import subprocess
 import logging
 import time
-import re
 
 FORMAT = '%(levelname)s %(message)s'
 # TODO: Make the logging level configurable.
@@ -128,7 +128,7 @@ def get_nodes():
 
 def get_pod_config(pod_name):
     """Returns the pod config of a k8s pod with name pod_name. """
-    COMMAND = "kubectl describe pod " + pod_name + " -n kube-system"
+    COMMAND = "kubectl describe pod {} -n {}".format(pod_name, namespace.name)
     try:
         encoded_output = subprocess.check_output(COMMAND, shell=True)
     except subprocess.CalledProcessError as grepexc:

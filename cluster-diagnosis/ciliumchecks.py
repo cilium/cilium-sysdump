@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import namespace
 
 import subprocess
 import utils
@@ -47,7 +48,7 @@ def check_pod_running_cb(nodes):
                       " {} and status {}".format(
                           name, node_name, ready_status, status))
             # Check the log for common errors.
-            cmd = "kubectl logs -n kube-system " + name
+            cmd = "kubectl logs -n {} {}".format(namespace.name, name)
             output = ""
             try:
                 encoded_output = subprocess.check_output(cmd, shell=True)
@@ -89,6 +90,7 @@ def check_pod_running_cb(nodes):
                          node_name,
                          ready_status,
                          status))
+
     if len(pod_not_seen_on_nodes) != 0:
         if len(pod_not_seen_on_nodes) == len(nodes):
             log.error("could not find a running cilium pod on any node")
@@ -151,9 +153,10 @@ def check_drop_notifications_enabled_cb():
     ret_code = True
     for name, ready_status, status, node_name in \
             utils.get_pods_status_iterator_by_labels("k8s-app=cilium"):
-        cmd = "kubectl exec -it " + name + \
-              " -n kube-system cilium config " \
-              "| grep DropNotification | awk '{print $2}'"
+        cmd = ("kubectl exec -it {}"
+               " -n {} cilium config "
+               "| grep DropNotification "
+               "| awk '{{print $2}}'").format(name, namespace.name)
         output = ""
         try:
             encoded_output = subprocess.check_output(cmd, shell=True)
@@ -194,9 +197,10 @@ def check_trace_notifications_enabled_cb():
     ret_code = True
     for name, ready_status, status, node_name in \
             utils.get_pods_status_iterator_by_labels("k8s-app=cilium"):
-        cmd = "kubectl exec -it " + name + \
-              " -n kube-system cilium config " \
-              "| grep TraceNotification | awk '{print $2}'"
+        cmd = ("kubectl exec -it {}"
+               " -n {} cilium config "
+               "| grep TraceNotification "
+               "| awk '{{print $2}}'").format(name, namespace.name)
         output = ""
         try:
             encoded_output = subprocess.check_output(cmd, shell=True)
@@ -237,9 +241,10 @@ def check_cilium_version_cb():
     ret_code = True
     for name, ready_status, status, node_name in \
             utils.get_pods_status_iterator_by_labels("k8s-app=cilium"):
-        cmd = "kubectl describe pod " + name + \
-              " -n kube-system | grep \"Image:.*docker.io/cilium/cilium\" | " \
-              "awk '{print $2}' | awk -F ':' '{print $2}'"
+        cmd = ("kubectl describe pod {}"
+               " -n {} | grep \"Image:.*docker.io/cilium/cilium\" | "
+               "awk '{{print $2}}' "
+               "| awk -F ':' '{{print $2}}'").format(name, namespace.name)
         output = ""
         try:
             encoded_output = subprocess.check_output(cmd, shell=True)
