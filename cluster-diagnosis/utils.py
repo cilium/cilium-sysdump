@@ -206,9 +206,12 @@ def get_pod_status(full_pod_name):
     Returns:
         An object of type PodStatus.
     """
-    cmd = "kubectl get pods -o wide --all-namespaces " \
-          "| grep " + full_pod_name + " | " \
-          "awk '{print $2 \" \" $3 \" \" $4 \" \" $NF}'"
+
+    cmd = ("kubectl get pods --all-namespaces -o wide "
+           "| awk 'BEGIN{{offset=0}}"
+           "/NOMINATED/{{offset=1}}"
+           "/{}/{{print $2 \" \" $3 \" \" $4 \" \" $(NF-offset)}}'").format(
+               full_pod_name)
     try:
         encoded_output = subprocess.check_output(cmd, shell=True)
     except subprocess.CalledProcessError as exc:
@@ -246,9 +249,11 @@ def get_pods_status_iterator_by_labels(label_selector, must_exist=True):
     Returns:
         An object of type PodStatus.
     """
-    cmd = "kubectl get pods --no-headers -o wide --all-namespaces " \
-          "--selector=" + label_selector + " | " \
-          "awk '{print $2 \" \" $3 \" \" $4 \" \" $NF}'"
+    cmd = ("kubectl get pods --all-namespaces -o wide --selector={}"
+           "| awk 'BEGIN{{offset=0}}"
+           "/NOMINATED/{{offset=1}}"
+           "!/NAME/{{print $2 \" \" $3 \" \" $4 \" \" $(NF-offset)}}'").format(
+               label_selector)
     try:
         encoded_output = subprocess.check_output(cmd, shell=True)
     except subprocess.CalledProcessError as exc:
