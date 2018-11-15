@@ -93,11 +93,13 @@ class SysdumpCollector(object):
             log.info("collected pods summary: {}"
                      .format(pods_summary_file_name))
 
-    def collect_logs(self, label_selector):
+    def collect_logs(self, label_selector, node_ip_filter):
         pool = ThreadPool(multiprocessing.cpu_count() - 1)
         pool.map(
             self.collect_logs_per_pod,
-            utils.get_pods_status_iterator_by_labels(label_selector))
+            utils.get_pods_status_iterator_by_labels(
+                label_selector,
+                node_ip_filter))
         pool.close()
         pool.join()
 
@@ -136,17 +138,18 @@ class SysdumpCollector(object):
             log.info("collected log file: {}".format(
                 log_file_name_previous))
 
-    def collect_gops_stats(self, label_selector):
-        self.collect_gops(label_selector, "stats")
-        self.collect_gops(label_selector, "memstats")
-        self.collect_gops(label_selector, "stack")
+    def collect_gops_stats(self, label_selector, node_ip_filter):
+        self.collect_gops(label_selector, node_ip_filter, "stats")
+        self.collect_gops(label_selector, node_ip_filter, "memstats")
+        self.collect_gops(label_selector, node_ip_filter, "stack")
 
-    def collect_gops(self, label_selector, type_of_stat):
+    def collect_gops(self, label_selector, node_ip_filter, type_of_stat):
         pool = ThreadPool(multiprocessing.cpu_count() - 1)
         pool.map(
             functools.partial(self.collect_gops_per_pod,
                               type_of_stat=type_of_stat),
-            utils.get_pods_status_iterator_by_labels(label_selector))
+            utils.get_pods_status_iterator_by_labels(
+                label_selector, node_ip_filter))
         pool.close()
         pool.join()
 
@@ -253,18 +256,19 @@ class SysdumpCollector(object):
             log.info("collected and redacted cilium secret file: {}".format(
                 secret_file_name))
 
-    def collect_cilium_bugtool_output(self, label_selector):
+    def collect_cilium_bugtool_output(self, label_selector, node_ip_filter):
         pool = ThreadPool(multiprocessing.cpu_count() - 1)
         pool.map(
             self.collect_cilium_bugtool_output_per_pod,
-            utils.get_pods_status_iterator_by_labels(label_selector))
+            utils.get_pods_status_iterator_by_labels(
+                label_selector, node_ip_filter))
         pool.close()
         pool.join()
 
     def collect_cilium_bugtool_output_per_pod(self, podstatus):
         bugtool_output_file_name = "bugtool-{}-{}.tar".format(
             podstatus[0], utils.get_current_time())
-        cmd = "kubectl exec -n {}, {} cilium-bugtool".format(
+        cmd = "kubectl exec -n {} {} cilium-bugtool".format(
             namespace.name, podstatus[0])
         try:
             encoded_output = subprocess.check_output(cmd.split(), shell=False)
@@ -330,7 +334,7 @@ class SysdumpCollector(object):
             log.info("collected kubernetes version info: {}"
                      .format(version_file_name))
 
-    def collect(self):
+    def collect(self, node_ip_filter):
         log.info("collecting kubernetes version info ...")
         self.collect_k8s_version_info()
         log.info("collecting nodes overview ...")
@@ -342,7 +346,7 @@ class SysdumpCollector(object):
         log.info("collecting services overview ...")
         self.collect_services_overview()
         log.info("collecting cilium gops stats ...")
-        self.collect_gops_stats("k8s-app=cilium")
+        self.collect_gops_stats("k8s-app=cilium", node_ip_filter)
         log.info("collecting cilium network policy ...")
         self.collect_cnp()
         log.info("collecting cilium etcd secret ...")
@@ -357,9 +361,9 @@ class SysdumpCollector(object):
             return
         # Time-consuming collect actions go here.
         log.info("collecting cilium-bugtool output ...")
-        self.collect_cilium_bugtool_output("k8s-app=cilium")
+        self.collect_cilium_bugtool_output("k8s-app=cilium", node_ip_filter)
         log.info("collecting cilium logs ...")
-        self.collect_logs("k8s-app=cilium")
+        self.collect_logs("k8s-app=cilium", node_ip_filter)
 
     def archive(self):
         filename = self.output or self.sysdump_dir_name
