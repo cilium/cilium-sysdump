@@ -236,7 +236,8 @@ def get_pod_status(full_pod_name):
                      node_name=split_line[-1])
 
 
-def get_pods_status_iterator_by_labels(label_selector, must_exist=True):
+def get_pods_status_iterator_by_labels(label_selector, host_ip_filter,
+                                       must_exist=True):
     """Returns an iterator to the status of pods selected with the
     label selector.
 
@@ -269,11 +270,42 @@ def get_pods_status_iterator_by_labels(label_selector, must_exist=True):
                       "{} are running on the cluster".format(
                         label_selector))
         return
+    # kubectl field selector supports listing pods based on a particular
+    # field. However, it doesn't support hostIP field in 1.9.6. Also,
+    # it doesn't support set-based filtering. As a result, we will use
+    # grep based filtering for now. We might want to switch to this
+    # feature in the future. The following filter can be extended by
+    # modifying the following kubectl custom-columns and the associated
+    # grep command.
+    host_ip_filter_cmd = "kubectl get pods --no-headers " \
+        "-o=custom-columns=NAME:.metadata.name," \
+        "HOSTIP:.status.hostIP --all-namespaces | grep -E \"{}\" | " \
+        "awk '{{print $1}}'"
+    host_ip_filter_cmd = host_ip_filter_cmd.format(
+        "|".join(map(str, host_ip_filter)))
+    try:
+        filter_output = subprocess.check_output(
+            host_ip_filter_cmd, shell=True)
+    except subprocess.CalledProcessError as exc:
+        log.error("command to list filtered pods has "
+                  "failed. error code: "
+                  "{} {}".format(exc.returncode, exc.output))
+    filter_output = filter_output.decode()
+    if filter_output == "":
+        if must_exist:
+            log.error("No output because all the pods were filtered "
+                      "out by the node ip filter {}.".format(
+                        host_ip_filter))
+        return
+    filtered_pod_list = filter_output.splitlines()
+
     for line in output.splitlines():
         # Example line:
         # name-blah-sr64c 0/1 CrashLoopBackOff
         # ip-172-0-33-255.us-west-2.compute.internal
         split_line = line.split(' ')
+        if split_line[0] not in filtered_pod_list:
+            continue
         yield PodStatus(name=split_line[0],
                         ready_status=split_line[1],
                         status=split_line[2],

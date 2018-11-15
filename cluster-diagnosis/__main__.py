@@ -25,9 +25,14 @@ import os
 import time
 import distutils.util
 
-
 log = logging.getLogger(__name__)
 exit_code = 0
+
+
+def parse_comma_sep_list(arg_string):
+    item_list = arg_string.split(',')
+    item_list = [s.strip() for s in item_list if len(s)]
+    return item_list
 
 
 if __name__ == "__main__":
@@ -52,6 +57,13 @@ if __name__ == "__main__":
         parser_sysdump = subparsers.add_parser('sysdump',
                                                help='Collect logs and other '
                                                     'useful information.')
+        parser_sysdump.add_argument('--nodes',
+                                    type=parse_comma_sep_list,
+                                    help='Only return logs for particular '
+                                         'nodes specified by a comma '
+                                         'separated list of node IP '
+                                         'addresses.',
+                                    default="")
         parser_sysdump.add_argument('--since',
                                     help='Only return logs newer than a '
                                          'relative duration like 5s, 2m, or'
@@ -86,7 +98,7 @@ if __name__ == "__main__":
                 args.size_limit,
                 args.output,
                 args.quick)
-            sysdumpcollector.collect()
+            sysdumpcollector.collect(args.nodes)
             sysdumpcollector.archive()
             sys.exit(0)
     except AttributeError as e:
