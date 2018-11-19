@@ -176,7 +176,7 @@ def get_pods_summarized_status_iterator(label_selector):
         sys.stdout.write('.')
         sys.stdout.flush()
         for pod_status in \
-                get_pods_status_iterator_by_labels(label_selector, False):
+                get_pods_status_iterator_by_labels(label_selector, [], False):
             status_verdict = STATUS_RUNNING
             try:
                 temp_pod_status = get_pod_status(pod_status.name)

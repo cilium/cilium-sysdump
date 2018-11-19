@@ -77,7 +77,7 @@ def check_rbac_cb():
     ret_code = True
     for name, ready_status, status, node_name in \
             utils.get_pods_status_iterator_by_labels(
-                "component=kube-apiserver", False):
+                "component=kube-apiserver", [], False):
         cmd = "kubectl describe pod {} -n {}".format(name, namespace.name)
         try:
             encoded_output = subprocess.check_output(cmd, shell=True)
