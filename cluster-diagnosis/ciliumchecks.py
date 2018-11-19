@@ -112,7 +112,7 @@ def check_access_log_config_cb():
     """
     ret_code = True
     for name, ready_status, status, node_name in \
-            utils.get_pods_status_iterator_by_labels("k8s-app=cilium"):
+            utils.get_pods_status_iterator_by_labels("k8s-app=cilium", []):
         # TODO: Add volume checks.
         config = utils.get_pod_config(name)
         if not config:
@@ -152,7 +152,7 @@ def check_drop_notifications_enabled_cb():
     """
     ret_code = True
     for name, ready_status, status, node_name in \
-            utils.get_pods_status_iterator_by_labels("k8s-app=cilium"):
+            utils.get_pods_status_iterator_by_labels("k8s-app=cilium", []):
         cmd = ("kubectl exec -it {}"
                " -n {} cilium config "
                "| grep DropNotification "
@@ -196,7 +196,7 @@ def check_trace_notifications_enabled_cb():
     """
     ret_code = True
     for name, ready_status, status, node_name in \
-            utils.get_pods_status_iterator_by_labels("k8s-app=cilium"):
+            utils.get_pods_status_iterator_by_labels("k8s-app=cilium", []):
         cmd = ("kubectl exec -it {}"
                " -n {} cilium config "
                "| grep TraceNotification "
@@ -240,7 +240,7 @@ def check_cilium_version_cb():
     """
     ret_code = True
     for name, ready_status, status, node_name in \
-            utils.get_pods_status_iterator_by_labels("k8s-app=cilium"):
+            utils.get_pods_status_iterator_by_labels("k8s-app=cilium", []):
         cmd = ("kubectl describe pod {}"
                " -n {} | grep \"Image:.*docker.io/cilium/cilium\" | "
                "awk '{{print $2}}' "
