@@ -241,7 +241,7 @@ class SysdumpCollector(object):
         try:
             output = json.loads(subprocess.check_output(cmd, shell=True))
             data = {}
-            for key, value in output.get('data').iteritems():
+            for key, value in output.get('data').items():
                 data[key] = "XXXXX"
             output['data'] = data
             with open(
