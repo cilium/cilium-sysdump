@@ -6,3 +6,6 @@ cluster-diagnosis.zip
 
 # Editor
 .idea/
+
+# OS generated files
+.DS_Store

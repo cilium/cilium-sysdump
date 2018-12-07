@@ -31,7 +31,8 @@ def check_kube_apiserver_version_cb():
         True if successful, False otherwise.
     """
     p = re.compile(
-        r"^Server Version: version.Info{Major:\"(\d+)\", Minor:\"(\d+)\".*$")
+        r"^Server Version: version.Info{Major:\"(\d+)\", Minor:\"(\d+)\+?\".*$"
+        )
 
     cmd = "kubectl version"
     try:
