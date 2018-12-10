@@ -128,7 +128,8 @@ def get_nodes():
 
 def get_pod_config(pod_name):
     """Returns the pod config of a k8s pod with name pod_name. """
-    COMMAND = "kubectl describe pod {} -n {}".format(pod_name, namespace.name)
+    COMMAND = "kubectl describe pod {} -n {}".format(pod_name,
+                                                     namespace.cilium_ns)
     try:
         encoded_output = subprocess.check_output(COMMAND, shell=True)
     except subprocess.CalledProcessError as grepexc:
@@ -142,7 +143,8 @@ def get_pod_config(pod_name):
 
 
 PodStatus_ = collections.namedtuple('PodStatus',
-                                    'name ready_status status node_name')
+                                    'name ready_status status node_name '
+                                    'namespace')
 
 
 class PodStatus(PodStatus_):
@@ -151,6 +153,7 @@ class PodStatus(PodStatus_):
         ready_status (string): the ready status of the pod.
         status (string): the status of the pod (e.g. Running).
         node_name (string): the name of the node.
+        namespace (string): the namespace of the pod
     """
     pass
 
@@ -189,7 +192,8 @@ def get_pods_summarized_status_iterator(label_selector):
                 pod_status.name,
                 pod_status.ready_status,
                 status_verdict,
-                pod_status.node_name)
+                pod_status.node_name,
+                pod_status.namespace)
         time.sleep(2)
     sys.stdout.write('\n')
     sys.stdout.flush()
@@ -210,8 +214,8 @@ def get_pod_status(full_pod_name):
     cmd = ("kubectl get pods --all-namespaces -o wide "
            "| awk 'BEGIN{{offset=0}}"
            "/NOMINATED/{{offset=1}}"
-           "/{}/{{print $2 \" \" $3 \" \" $4 \" \" $(NF-offset)}}'").format(
-               full_pod_name)
+           "/{}/{{print $2 \" \" $3 \" \" $4 \" \" $(NF-offset) \" \" $1}}'"
+           ).format(full_pod_name)
     try:
         encoded_output = subprocess.check_output(cmd, shell=True)
     except subprocess.CalledProcessError as exc:
@@ -228,12 +232,13 @@ def get_pod_status(full_pod_name):
                            full_pod_name))
     # Example line:
     # name-blah-sr64c 0/1 CrashLoopBackOff
-    # ip-172-0-33-255.us-west-2.compute.internal
+    # ip-172-0-33-255.us-west-2.compute.internal kube-system
     split_line = output.split(' ')
     return PodStatus(name=split_line[0],
                      ready_status=split_line[1],
                      status=split_line[2],
-                     node_name=split_line[-1])
+                     node_name=split_line[3],
+                     namespace=split_line[4])
 
 
 def get_pods_status_iterator_by_labels(label_selector, host_ip_filter,
@@ -253,8 +258,8 @@ def get_pods_status_iterator_by_labels(label_selector, host_ip_filter,
     cmd = ("kubectl get pods --all-namespaces -o wide --selector={}"
            "| awk 'BEGIN{{offset=0}}"
            "/NOMINATED/{{offset=1}}"
-           "!/NAME/{{print $2 \" \" $3 \" \" $4 \" \" $(NF-offset)}}'").format(
-               label_selector)
+           "!/NAME/{{print $2 \" \" $3 \" \" $4 \" \" $(NF-offset) \" \" $1}}'"
+           ).format(label_selector)
     try:
         encoded_output = subprocess.check_output(cmd, shell=True)
     except subprocess.CalledProcessError as exc:
@@ -302,14 +307,15 @@ def get_pods_status_iterator_by_labels(label_selector, host_ip_filter,
     for line in output.splitlines():
         # Example line:
         # name-blah-sr64c 0/1 CrashLoopBackOff
-        # ip-172-0-33-255.us-west-2.compute.internal
+        # ip-172-0-33-255.us-west-2.compute.internal kube-system
         split_line = line.split(' ')
         if split_line[0] not in filtered_pod_list:
             continue
         yield PodStatus(name=split_line[0],
                         ready_status=split_line[1],
                         status=split_line[2],
-                        node_name=split_line[-1])
+                        node_name=split_line[3],
+                        namespace=split_line[4])
 
 
 def getopts(argv):

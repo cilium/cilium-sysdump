@@ -76,10 +76,10 @@ def check_rbac_cb():
         True if successful, False otherwise.
     """
     ret_code = True
-    for name, ready_status, status, node_name in \
+    for name, ready_status, status, node_name, namespace in \
             utils.get_pods_status_iterator_by_labels(
                 "component=kube-apiserver", [], False):
-        cmd = "kubectl describe pod {} -n {}".format(name, namespace.name)
+        cmd = "kubectl describe pod {} -n {}".format(name, namespace)
         try:
             encoded_output = subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError as exc:
