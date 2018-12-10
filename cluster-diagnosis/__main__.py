@@ -43,7 +43,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Cluster diagnosis '
                                                  'tool.')
 
-    parser.add_argument('--namespace', type=str, default='kube-system',
+    parser.add_argument('--cilium-ns', type=str, default='kube-system',
                         help="specify k8s namespace Cilium is running in")
     # Add an optional subparser for the sysdump command.
     # Optional subparsers are only supported in Python 3.3+.
@@ -85,7 +85,7 @@ if __name__ == "__main__":
                                          'Defaults to "false".')
 
     args = parser.parse_args()
-    namespace.name = args.namespace
+    namespace.cilium_ns = args.cilium_ns
     try:
         if args.sysdump:
             sysdump_dir_name = "./cilium-sysdump-{}"\
