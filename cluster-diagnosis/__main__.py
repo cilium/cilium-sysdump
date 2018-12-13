@@ -85,7 +85,15 @@ if __name__ == "__main__":
                                          'Defaults to "false".')
 
     args = parser.parse_args()
-    namespace.cilium_ns = args.cilium_ns
+    # Automatically infer Cilium's namespace using Cilium daemonset's namespace
+    # Fall back to the specified namespace in the input argument if it fails.
+    try:
+        status = utils.get_resource_status(
+            "daemonset", full_name="cilium")
+        namespace.cilium_ns = status[0]
+    except RuntimeError as e:
+        namespace.cilium_ns = args.cilium_ns
+        pass
     try:
         if args.sysdump:
             sysdump_dir_name = "./cilium-sysdump-{}"\

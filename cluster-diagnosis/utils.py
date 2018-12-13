@@ -114,6 +114,66 @@ class ModuleCheckGroup:
         return True
 
 
+ResourceStatus_ = collections.namedtuple(
+    'ResourceStatus',
+    'namespace name')
+
+
+# Unlike PodStatus, this class provides an easy-to-extend generic k8s
+# resource representation. Feel free to append more resource status.
+class ResourceStatus(ResourceStatus_):
+    """ A namedtupe with the following elements in this order.
+        namespace (string): name of the pod.
+        name (string): name of the pod.
+    """
+    pass
+
+
+def get_resource_status(type, full_name="", label=""):
+    """Returns the ResourceStatus of one particular Kubernetes resource.
+
+    Args:
+        type - Kubernetes resource type.
+        full_name(optional) - the full name of the Kubernetes resource.
+        label(optional) - the attached label of the resource.
+    Returns:
+        An object of type ResourceStatus.
+    Exceptions:
+        The goal is to be consistent with get_pod_status.
+        If the command execution failed or no resource has been
+        found. A RuntimeError exception will be threw.
+    """
+    cmd = "kubectl get {} --no-headers --all-namespaces " \
+          "-o wide --selector \"{}\" " \
+          "| grep \"{}\" | awk '{{print $1 \" \" $2}}'"
+    cmd = cmd.format(type, label, full_name)
+    try:
+        encoded_output = subprocess.check_output(cmd, shell=True)
+    except subprocess.CalledProcessError as exc:
+        log.warning("command to get status of {} has "
+                    "failed. error code: "
+                    "{} {}".format(full_name,
+                                   exc.returncode, exc.output))
+        raise RuntimeError(
+            "command to get status of {} has "
+            "failed. error code: "
+            "{} {}".format(full_name,
+                           exc.returncode, exc.output))
+    output = encoded_output.decode()
+    if output == "":
+        log.warning(
+            "{} \"{}\" with label \"{}\" can't be found in "
+            "the cluster".format(type, full_name, label))
+        raise RuntimeError(
+            "{} {} with label {} can't be found in the cluster".format(
+                type, full_name, label))
+    # Example line:
+    # kube-system cilium
+    split_line = output.split(' ')
+    return ResourceStatus(namespace=split_line[0],
+                          name=split_line[1])
+
+
 def get_nodes():
     """Returns a list of nodes. """
     COMMAND = "kubectl get nodes | grep -v NAME | awk '{print $1}'"

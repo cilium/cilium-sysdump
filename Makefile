@@ -20,8 +20,12 @@ check: check-tools
 check-tools:
 	command -v pycodestyle >/dev/null 2>&1 || { echo "Package pycodestyle not installed. Aborting." >&2; exit 1; }
 
-build: clean check
+build: syntax-check clean check
 	cd cluster-diagnosis/ && zip -r ../cluster-diagnosis.zip *
 
+syntax-check:
+	./python-syntax-check.sh
+
 clean:
+	rm -rf ./cluster-diagnosis/*.pyc ./cluster-diagnosis/__pycache__
 	rm -rf ./cluster-diagnosis.zip
