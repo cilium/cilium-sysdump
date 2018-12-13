@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2017 Authors of Cilium
+# Copyright 2017-2018 Authors of Cilium
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -175,6 +175,20 @@ class SysdumpCollector(object):
                 log.info("collected gops {} file: {}".format(
                     type_of_stat, file_name))
 
+    def collect_netpol(self):
+        netpol_file_name = "netpol-{}.yaml".format(utils.get_current_time())
+        cmd = "kubectl get netpol -o yaml --all-namespaces > {}/{}".format(
+              self.sysdump_dir_name, netpol_file_name)
+        try:
+            subprocess.check_output(cmd, shell=True)
+        except subprocess.CalledProcessError as exc:
+            if exc.returncode != 0:
+                log.error("Error: {}. Could not collect kubernetes network "
+                          "policy: {}".format(exc, netpol_file_name))
+        else:
+            log.info("collected kubernetes network policy: {}"
+                     .format(netpol_file_name))
+
     def collect_cnp(self):
         cnp_file_name = "cnp-{}.yaml".format(utils.get_current_time())
         cmd = "kubectl get cnp -o yaml --all-namespaces > {}/{}".format(
@@ -347,6 +361,8 @@ class SysdumpCollector(object):
         self.collect_services_overview()
         log.info("collecting cilium gops stats ...")
         self.collect_gops_stats("k8s-app=cilium", node_ip_filter)
+        log.info("collecting kubernetes network policy ...")
+        self.collect_netpol()
         log.info("collecting cilium network policy ...")
         self.collect_cnp()
         log.info("collecting cilium etcd secret ...")
