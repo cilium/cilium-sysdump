@@ -24,7 +24,7 @@ build: syntax-check clean check
 	cd cluster-diagnosis/ && zip -r ../cluster-diagnosis.zip *
 
 syntax-check:
-	./python-syntax-check.sh
+	./python-syntax-check.sh cluster-diagnosis
 
 clean:
 	rm -rf ./cluster-diagnosis/*.pyc ./cluster-diagnosis/__pycache__
