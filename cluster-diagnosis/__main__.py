@@ -89,7 +89,7 @@ if __name__ == "__main__":
     # Fall back to the specified namespace in the input argument if it fails.
     try:
         status = utils.get_resource_status(
-            "daemonset", full_name="cilium")
+            "daemonset", full_name="cilium", label="k8s-app=cilium")
         namespace.cilium_ns = status[0]
     except RuntimeError as e:
         namespace.cilium_ns = args.cilium_ns
