@@ -253,7 +253,8 @@ class SysdumpCollector(object):
         cmd = "kubectl get secret cilium-etcd-secrets -n {} -o json".format(
             namespace.cilium_ns)
         try:
-            output = json.loads(subprocess.check_output(cmd, shell=True))
+            output = json.loads(
+                subprocess.check_output(cmd, shell=True).decode("utf-8"))
             data = {}
             for key, value in output.get('data').items():
                 data[key] = "XXXXX"
