@@ -348,9 +348,25 @@ class SysdumpCollector(object):
             log.info("collected kubernetes version info: {}"
                      .format(version_file_name))
 
+    def collect_k8s_events(self):
+        events_file_name = "k8s-events-{}.json".format(
+            utils.get_current_time())
+        cmd = "kubectl get events --all-namespaces -o json > {}/{}".format(
+                self.sysdump_dir_name, events_file_name)
+        try:
+            subprocess.check_output(cmd, shell=True)
+        except subprocess.CalledProcessError as exc:
+            if exc.returncode != 0:
+                log.error("Error: {}. Unable to get kubernetes events.")
+        else:
+            log.info("collected kubernetes events: {}"
+                     .format(events_file_name))
+
     def collect(self, node_ip_filter):
         log.info("collecting kubernetes version info ...")
         self.collect_k8s_version_info()
+        log.info("collecting Kubernetes events JSON ...")
+        self.collect_k8s_events()
         log.info("collecting nodes overview ...")
         self.collect_nodes_overview()
         log.info("collecting pods overview ...")
