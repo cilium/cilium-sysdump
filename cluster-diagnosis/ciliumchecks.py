@@ -241,10 +241,11 @@ def check_cilium_version_cb():
     ret_code = True
     for name, ready_status, status, node_name, namespace in \
             utils.get_pods_status_iterator_by_labels("k8s-app=cilium", []):
-        cmd = ("kubectl describe pod {}"
-               " -n {} | grep \"Image:.*docker.io/cilium/cilium\" | "
-               "awk '{{print $2}}' "
-               "| awk -F ':' '{{print $2}}'").format(name, namespace)
+        cmd = ("kubectl get pod {}"
+               " -n {} -o jsonpath='{{.spec.containers"
+               "[?(@.command[]==\"cilium-agent\")].image}}' | "
+               "awk -F \":\" '{{print $2}}'")\
+            .format(name, namespace)
         output = ""
         try:
             encoded_output = subprocess.check_output(cmd, shell=True)
