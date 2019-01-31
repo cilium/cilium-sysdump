@@ -204,8 +204,8 @@ class SysdumpCollector(object):
                      .format(cnp_file_name))
 
     def collect_cep(self):
-        cep_file_name = "cep-{}.yaml".format(utils.get_current_time())
-        cmd = "kubectl get cep -o yaml --all-namespaces > {}/{}".format(
+        cep_file_name = "cep-{}.json".format(utils.get_current_time())
+        cmd = "kubectl get cep -o json --all-namespaces > {}/{}".format(
             self.sysdump_dir_name, cep_file_name)
         try:
             subprocess.check_output(cmd, shell=True)
