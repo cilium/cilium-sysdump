@@ -43,7 +43,7 @@ def check_pod_running_cb(nodes):
             pod_not_seen_on_nodes.remove(node_name)
         except ValueError:
             pass
-        if status != utils.STATUS_RUNNING or ready_status != "1/1":
+        if status != utils.STATUS_RUNNING or ready_status != "true":
             log.error("pod {} running on {} has ready status"
                       " {} and status {}".format(
                           name, node_name, ready_status, status))
@@ -84,7 +84,7 @@ def check_pod_running_cb(nodes):
                 log.error("Hint: BPF requirements have not been met. Check"
                           " Cilium logs for more information.")
         else:
-            log.info("pod {} running on {} has {} pods ready"
+            log.info("pod {} running on {} has pod ready status {}"
                      " and status {}".format(
                          name,
                          node_name,
