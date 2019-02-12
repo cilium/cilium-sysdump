@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2017-2018 Authors of Cilium
+# Copyright 2017-2019 Authors of Cilium
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -281,17 +281,19 @@ class SysdumpCollector(object):
         pool.join()
 
     def collect_cilium_bugtool_output_per_pod(self, podstatus):
+        podname = podstatus[0]
+        namespace = podstatus[4]
         bugtool_output_file_name = "bugtool-{}-{}.tar".format(
-            podstatus[0], utils.get_current_time())
+            podname, utils.get_current_time())
         cmd = "kubectl exec -n {} {} cilium-bugtool".format(
-            podstatus[4], podstatus[0])
+            namespace, podname)
         try:
             encoded_output = subprocess.check_output(cmd.split(), shell=False)
         except subprocess.CalledProcessError as exc:
             if exc.returncode != 0:
                 log.error(
                     "Error: {}. Could not run cilium-bugtool on {}"
-                    .format(exc, podstatus[0]))
+                    .format(exc, podname))
         else:
             output = encoded_output.decode()
             p = re.compile(
@@ -307,9 +309,8 @@ class SysdumpCollector(object):
                     " file name".format(exc))
 
             cmd = "kubectl cp {}/{}:{} ./{}/{}".format(
-                podstatus[4], podstatus[0], output_file_name,
-                self.sysdump_dir_name,
-                bugtool_output_file_name)
+                namespace, podname, output_file_name,
+                self.sysdump_dir_name, bugtool_output_file_name)
             try:
                 subprocess.check_output(cmd.split(), shell=False)
             except subprocess.CalledProcessError as exc:
