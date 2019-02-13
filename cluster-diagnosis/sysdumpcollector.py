@@ -283,8 +283,9 @@ class SysdumpCollector(object):
     def collect_cilium_bugtool_output_per_pod(self, podstatus):
         podname = podstatus[0]
         namespace = podstatus[4]
-        bugtool_output_file_name = "bugtool-{}-{}.tar".format(
+        bugtool_output_dir = "bugtool-{}-{}".format(
             podname, utils.get_current_time())
+        bugtool_output_file_name = "{}.tar".format(bugtool_output_dir)
         cmd = "kubectl exec -n {} {} cilium-bugtool".format(
             namespace, podname)
         try:
@@ -308,11 +309,21 @@ class SysdumpCollector(object):
                     "Error: {}. Could not find cilium-bugtool output"
                     " file name".format(exc))
 
-            cmd = "kubectl cp {}/{}:{} ./{}/{}".format(
+            copyCmd = "kubectl cp {}/{}:{} ./{}/{}".format(
                 namespace, podname, output_file_name,
                 self.sysdump_dir_name, bugtool_output_file_name)
+            mkdirCmd = "mkdir -p ./{}/{}".format(
+                    self.sysdump_dir_name, bugtool_output_dir)
+            tarCmd = "tar -xf ./{}/{} -C ./{}/{} --strip-components=1".format(
+                self.sysdump_dir_name, bugtool_output_file_name,
+                self.sysdump_dir_name, bugtool_output_dir)
+            rmCmd = "rm ./{}/{}".format(
+                    self.sysdump_dir_name, bugtool_output_file_name)
             try:
-                subprocess.check_output(cmd.split(), shell=False)
+                subprocess.check_output(copyCmd.split(), shell=False)
+                subprocess.check_output(mkdirCmd.split(), shell=False)
+                subprocess.check_output(tarCmd.split(), shell=False)
+                subprocess.check_output(rmCmd.split(), shell=False)
             except subprocess.CalledProcessError as exc:
                 if exc.returncode != 0:
                     log.error(
