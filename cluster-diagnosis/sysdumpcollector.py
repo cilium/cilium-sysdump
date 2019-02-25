@@ -154,26 +154,25 @@ class SysdumpCollector(object):
         pool.join()
 
     def collect_gops_per_pod(self, podstatus, type_of_stat):
-            file_name = "{}-{}-{}.txt".format(
-                podstatus[0],
-                utils.get_current_time(),
-                type_of_stat)
-            cmd = "kubectl exec -n {} {} -- " \
-                  "/bin/gops {} 1 > {}/{}".format(
-                      podstatus[4],
-                      podstatus[0],
-                      type_of_stat,
-                      self.sysdump_dir_name,
-                      file_name)
-            try:
-                subprocess.check_output(cmd, shell=True)
-            except subprocess.CalledProcessError as exc:
-                if exc.returncode != 0:
-                    log.error("Error: {}. Could not collect gops {}: {}"
-                              .format(exc, type_of_stat, file_name))
-            else:
-                log.info("collected gops {} file: {}".format(
-                    type_of_stat, file_name))
+        file_name = "{}-{}-{}.txt".format(
+            podstatus[0],
+            utils.get_current_time(),
+            type_of_stat)
+        cmd = "kubectl exec -n {} {} -- /bin/gops {} 1 > {}/{}".format(
+            podstatus[4],
+            podstatus[0],
+            type_of_stat,
+            self.sysdump_dir_name,
+            file_name)
+        try:
+            subprocess.check_output(cmd, shell=True)
+        except subprocess.CalledProcessError as exc:
+            if exc.returncode != 0:
+                log.error("Error: {}. Could not collect gops {}: {}"
+                          .format(exc, type_of_stat, file_name))
+        else:
+            log.info("collected gops {} file: {}".format(
+                type_of_stat, file_name))
 
     def collect_netpol(self):
         netpol_file_name = "netpol-{}.yaml".format(utils.get_current_time())
