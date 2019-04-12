@@ -120,23 +120,58 @@ class SysdumpCollector(object):
         else:
             log.info("collected log file: {}".format(log_file_name))
 
-        # Previous containers
-        log_file_name_previous = "{0}-previous".format(log_file_name)
-        cmd = command.format(
-            "--previous", self.since, self.size_limit, podstatus[4],
-            podstatus[0],
-            self.sysdump_dir_name, log_file_name_previous)
+        # Only get logs from previous containers if pod has restarted.
+        # Need to get the pod to access its restartCount.
+        podCommandPreFormatted = "kubectl get pod {} -n {} -o json"
+        podCmd = podCommandPreFormatted.format(
+            podstatus[0], podstatus[4]
+        )
+
         try:
-            subprocess.check_output(cmd, shell=True)
+            podOutput = subprocess.check_output(podCmd, shell=True)
         except subprocess.CalledProcessError as exc:
             if exc.returncode != 0:
-                log.debug(
-                    "Debug: {}. Could not collect previous "
-                    "log for '{}': {}"
-                    .format(exc, podstatus[0], log_file_name))
+                log.debug("Debug {}: could not get pod {}").format(
+                    exc, podstatus[0])
         else:
-            log.info("collected log file: {}".format(
-                log_file_name_previous))
+            # Examine JSON output to see if restartCount > 0
+            decodedPodOutput = podOutput.decode()
+            jsonOutput = json.loads(decodedPodOutput)
+            containerStatuses = jsonOutput['status']['containerStatuses']
+
+            gatherPrevLogs = False
+
+            for value in containerStatuses:
+                restartCount = value['restartCount']
+                if int(restartCount) > 0:
+                    gatherPrevLogs = True
+                    break
+
+            if gatherPrevLogs:
+                log_file_name_previous = "{0}-previous".format(
+                    log_file_name)
+                command = "kubectl logs --previous --timestamps=true " \
+                          "--since={} " \
+                          "--limit-bytes={} -n {} {} > {}/{}.log"
+                cmd = command.format(self.since, self.size_limit,
+                                     podstatus[4], podstatus[0],
+                                     self.sysdump_dir_name,
+                                     log_file_name_previous)
+                try:
+                    subprocess.check_output(cmd, shell=True)
+                except subprocess.CalledProcessError as exc:
+                    if exc.returncode != 0:
+                        log.debug(
+                            "Debug: {}. Could not collect previous "
+                            "log for '{}': {}"
+                            .format(exc, podstatus[0], log_file_name))
+                else:
+                    log.info("collected log file: {}".format(
+                        log_file_name_previous))
+
+            else:
+                log.debug("no previous pod logs to gather for pod {}".format(
+                          podstatus[0]))
 
     def collect_gops_stats(self, label_selector, node_ip_filter):
         self.collect_gops(label_selector, node_ip_filter, "stats")
