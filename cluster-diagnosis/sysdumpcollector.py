@@ -443,6 +443,7 @@ class SysdumpCollector(object):
         self.collect_cilium_bugtool_output("k8s-app=cilium", node_ip_filter)
         log.info("collecting cilium logs ...")
         self.collect_logs("k8s-app=cilium", node_ip_filter)
+        self.collect_logs("io.cilium/app=operator", [])
 
     def archive(self):
         filename = self.output or self.sysdump_dir_name
