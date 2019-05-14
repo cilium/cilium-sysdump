@@ -306,7 +306,7 @@ class SysdumpCollector(object):
                 secret_file_name))
 
     def collect_cilium_bugtool_output(self, label_selector, node_ip_filter):
-        pool = ThreadPool(multiprocessing.cpu_count() - 1)
+        pool = ThreadPool(multiprocessing.cpu_count())
         pool.map(
             self.collect_cilium_bugtool_output_per_pod,
             utils.get_pods_status_iterator_by_labels(
