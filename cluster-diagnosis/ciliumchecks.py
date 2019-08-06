@@ -25,7 +25,7 @@ MINIMUM_SUPPORTED_CILIUM_VERSION_MINOR = 0
 MINIMUM_SUPPORTED_CILIUM_VERSION_PATCH = 0
 
 
-def check_pod_running_cb(nodes):
+def check_pod_running_cb(nodes, cilium_labels):
     """Checks whether the Cilium container is running on all the nodes.
 
     Args:
@@ -38,7 +38,7 @@ def check_pod_running_cb(nodes):
     ret_code = True
     pod_not_seen_on_nodes = nodes[:]
     for name, ready_status, status, node_name, namespace in \
-            utils.get_pods_summarized_status_iterator("k8s-app=cilium"):
+            utils.get_pods_summarized_status_iterator(cilium_labels):
         try:
             pod_not_seen_on_nodes.remove(node_name)
         except ValueError:
@@ -101,7 +101,7 @@ def check_pod_running_cb(nodes):
     return ret_code
 
 
-def check_access_log_config_cb():
+def check_access_log_config_cb(cilium_labels):
     """Checks cilium access log parameter.
 
     Args:
@@ -112,7 +112,7 @@ def check_access_log_config_cb():
     """
     ret_code = True
     for name, ready_status, status, node_name in \
-            utils.get_pods_status_iterator_by_labels("k8s-app=cilium", []):
+            utils.get_pods_status_iterator_by_labels(cilium_labels, []):
         # TODO: Add volume checks.
         config = utils.get_pod_config(name)
         if not config:
@@ -141,7 +141,7 @@ def check_access_log_config_cb():
     return ret_code
 
 
-def check_drop_notifications_enabled_cb():
+def check_drop_notifications_enabled_cb(cilium_labels):
     """Checks whether DropNotification is enabled
 
     Args:
@@ -152,7 +152,7 @@ def check_drop_notifications_enabled_cb():
     """
     ret_code = True
     for name, ready_status, status, node_name, namespace in \
-            utils.get_pods_status_iterator_by_labels("k8s-app=cilium", []):
+            utils.get_pods_status_iterator_by_labels(cilium_labels, []):
         cmd = ("kubectl exec -it {}"
                " -n {} cilium config "
                "| grep DropNotification "
@@ -185,7 +185,7 @@ def check_drop_notifications_enabled_cb():
     return ret_code
 
 
-def check_trace_notifications_enabled_cb():
+def check_trace_notifications_enabled_cb(cilium_labels):
     """Checks whether TraceNotification is enabled
 
     Args:
@@ -196,7 +196,7 @@ def check_trace_notifications_enabled_cb():
     """
     ret_code = True
     for name, ready_status, status, node_name, namespace in \
-            utils.get_pods_status_iterator_by_labels("k8s-app=cilium", []):
+            utils.get_pods_status_iterator_by_labels(cilium_labels, []):
         cmd = ("kubectl exec -it {}"
                " -n {} cilium config "
                "| grep TraceNotification "
@@ -229,7 +229,7 @@ def check_trace_notifications_enabled_cb():
     return ret_code
 
 
-def check_cilium_version_cb():
+def check_cilium_version_cb(cilium_labels):
     """Checks whether cilium version is >= minimum supported version.
 
     Args:
@@ -240,7 +240,7 @@ def check_cilium_version_cb():
     """
     ret_code = True
     for name, ready_status, status, node_name, namespace in \
-            utils.get_pods_status_iterator_by_labels("k8s-app=cilium", []):
+            utils.get_pods_status_iterator_by_labels(cilium_labels, []):
         cmd = ("kubectl get pod {}"
                " -n {} -o jsonpath='{{.spec.containers"
                "[?(@.command[]==\"cilium-agent\")].image}}' | "
