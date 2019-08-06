@@ -83,13 +83,18 @@ if __name__ == "__main__":
                                          'cilium bugtool output will'
                                          ' not be collected.'
                                          'Defaults to "false".')
+        parser_sysdump.add_argument('--cilium-labels',
+                                    help='Labels of cilium pods running in '
+                                         'the cluster',
+                                    default="k8s-app=cilium")
 
     args = parser.parse_args()
+
     # Automatically infer Cilium's namespace using Cilium daemonset's namespace
     # Fall back to the specified namespace in the input argument if it fails.
     try:
         status = utils.get_resource_status(
-            "pod", full_name="", label="k8s-app=cilium")
+            "pod", full_name="", label=args.cilium_labels)
         namespace.cilium_ns = status[0]
     except RuntimeError as e:
         namespace.cilium_ns = args.cilium_ns
@@ -105,7 +110,8 @@ if __name__ == "__main__":
                 args.since,
                 args.size_limit,
                 args.output,
-                args.quick)
+                args.quick,
+                args.cilium_labels)
             sysdumpcollector.collect(args.nodes)
             sysdumpcollector.archive()
             sys.exit(0)
@@ -136,17 +142,20 @@ if __name__ == "__main__":
     cilium_check_grp.add(
         utils.ModuleCheck(
             "check whether cilium version is supported",
-            lambda: ciliumchecks.check_cilium_version_cb()))
+            lambda: ciliumchecks.check_cilium_version_cb(args.cilium_labels)))
     cilium_check_grp.add(
         utils.ModuleCheck(
             "check whether pod is running",
-            lambda: ciliumchecks.check_pod_running_cb(nodes)))
+            lambda: ciliumchecks.check_pod_running_cb(nodes,
+                                                      args.cilium_labels)))
     cilium_check_grp.add(utils.ModuleCheck(
         "L3/4 visibility: check whether DropNotification is enabled",
-        lambda: ciliumchecks.check_drop_notifications_enabled_cb()))
+        lambda: ciliumchecks.check_drop_notifications_enabled_cb(
+            args.cilium_labels)))
     cilium_check_grp.add(utils.ModuleCheck(
         "L3/4 visibility: check whether TraceNotification is enabled",
-        lambda: ciliumchecks.check_trace_notifications_enabled_cb()))
+        lambda: ciliumchecks.check_trace_notifications_enabled_cb(
+            args.cilium_labels)))
 
     if not cilium_check_grp.run():
         exit_code = 1

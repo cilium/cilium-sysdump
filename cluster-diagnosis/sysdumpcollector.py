@@ -41,12 +41,14 @@ class SysdumpCollector(object):
 
     def __init__(
             self,
-            sysdump_dir_name, since, size_limit, output, is_quick_mode):
+            sysdump_dir_name, since, size_limit, output, is_quick_mode,
+            cilium_labels):
         self.sysdump_dir_name = sysdump_dir_name
         self.since = since
         self.size_limit = size_limit
         self.output = output
         self.is_quick_mode = is_quick_mode
+        self.cilium_labels = cilium_labels
 
     def collect_nodes_overview(self):
         nodes_overview_file_name = "nodes-{}.json".format(
@@ -423,7 +425,7 @@ class SysdumpCollector(object):
         log.info("collecting services overview ...")
         self.collect_services_overview()
         log.info("collecting cilium gops stats ...")
-        self.collect_gops_stats("k8s-app=cilium", node_ip_filter)
+        self.collect_gops_stats(self.cilium_labels, node_ip_filter)
         log.info("collecting kubernetes network policy ...")
         self.collect_netpol()
         log.info("collecting cilium network policy ...")
@@ -440,9 +442,9 @@ class SysdumpCollector(object):
             return
         # Time-consuming collect actions go here.
         log.info("collecting cilium-bugtool output ...")
-        self.collect_cilium_bugtool_output("k8s-app=cilium", node_ip_filter)
+        self.collect_cilium_bugtool_output(self.cilium_labels, node_ip_filter)
         log.info("collecting cilium logs ...")
-        self.collect_logs("k8s-app=cilium", node_ip_filter)
+        self.collect_logs(self.cilium_labels, node_ip_filter)
         self.collect_logs("io.cilium/app=operator", [])
 
     def archive(self):
