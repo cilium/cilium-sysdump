@@ -3,9 +3,11 @@ venv/
 
 # Generated artifacts
 cluster-diagnosis.zip
+cluster-diagnosis/_version.py
 
 # Editor
 .idea/
+*.swp
 
 # OS generated files
 .DS_Store
