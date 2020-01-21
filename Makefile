@@ -32,3 +32,6 @@ syntax-check:
 clean:
 	rm -rf ./cluster-diagnosis/*.pyc ./cluster-diagnosis/__pycache__ ./cluster-diagnosis/_version.py
 	rm -rf ./cluster-diagnosis.zip
+
+release: build
+	./release.sh
