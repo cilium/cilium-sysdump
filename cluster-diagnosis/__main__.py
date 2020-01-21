@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2017-2019 Authors of Cilium
+# Copyright 2017-2020 Authors of Cilium
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from _version import __version__
 import utils
 import ciliumchecks
 import k8schecks
@@ -49,6 +50,8 @@ if __name__ == "__main__":
                         help='Labels of cilium pods running in '
                         'the cluster',
                         default="k8s-app=cilium")
+    parser.add_argument('-v', '--version', required=False, action='store_true',
+                        help="get the version of this tool")
     # Add an optional subparser for the sysdump command.
     # Optional subparsers are only supported in Python 3.3+.
     # Python 2.7 optional subparsers implementation has bugs,
@@ -89,6 +92,10 @@ if __name__ == "__main__":
                                          'Defaults to "false".')
 
     args = parser.parse_args()
+
+    if args.version:
+        print(__version__)
+        sys.exit(0)
 
     # Automatically infer Cilium's namespace using Cilium daemonset's namespace
     # Fall back to the specified namespace in the input argument if it fails.
