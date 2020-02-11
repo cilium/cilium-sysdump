@@ -12,7 +12,7 @@
  # See the License for the specific language governing permissions and
  # limitations under the License.
 
-.PHONY: build
+.PHONY: build version
 
 check: check-tools
 	pycodestyle .
@@ -21,17 +21,17 @@ check-tools:
 	command -v pycodestyle >/dev/null 2>&1 || { echo "Package pycodestyle not installed. Aborting." >&2; exit 1; }
 
 version:
-	echo "__version__ = \"$(shell cat VERSION)-$(shell git log --pretty=format:'%h' -n 1 2>/dev/null || echo "unknown")\"" > cluster-diagnosis/_version.py
+	echo "__version__ = \"$(shell cat VERSION)-$(shell git log --pretty=format:'%h' -n 1 2>/dev/null || echo "unknown")\"" > cilium-sysdump/_version.py
 
 build: syntax-check clean check version
-	cd cluster-diagnosis/ && zip -r ../cluster-diagnosis.zip *
+	cd cilium-sysdump/ && zip -r ../cilium-sysdump.zip *
 
 syntax-check:
-	./python-syntax-check.sh cluster-diagnosis
+	./python-syntax-check.sh cilium-sysdump
 
 clean:
-	rm -rf ./cluster-diagnosis/*.pyc ./cluster-diagnosis/__pycache__ ./cluster-diagnosis/_version.py
-	rm -rf ./cluster-diagnosis.zip
+	rm -rf ./cilium-sysdump/*.pyc ./cilium-sysdump/__pycache__ ./cilium-sysdump/_version.py
+	rm -rf ./cilium-sysdump.zip
 
 release: build
 	./release.sh

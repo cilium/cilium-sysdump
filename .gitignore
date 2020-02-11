@@ -2,8 +2,8 @@
 venv/
 
 # Generated artifacts
-cluster-diagnosis.zip
-cluster-diagnosis/_version.py
+cilium-sysdump.zip
+cilium-sysdump/_version.py
 
 # Editor
 .idea/

@@ -1,7 +1,7 @@
-# cluster-diagnosis tool
+# cilium-sysdump
 
 # Overview
- The cluster-diagnosis tool can help identify the most commonly encountered
+ The cilium-sysdump tool can help identify the most commonly encountered
  issues in cilium deployments. The tool currently supports Kubernetes 
  and Minikube clusters only.
 
@@ -31,5 +31,5 @@
     make build
 
 # Run:
-    python cluster-diagnosis.zip
+    python cilium-sysdump.zip
 
