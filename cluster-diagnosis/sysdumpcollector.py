@@ -96,7 +96,8 @@ class SysdumpCollector(object):
                      .format(pods_summary_file_name))
 
     def collect_logs(self, label_selector, node_ip_filter):
-        pool = ThreadPool(multiprocessing.cpu_count() - 1)
+        pool = ThreadPool(min(32, multiprocessing.cpu_count() + 4))
+
         pool.map(
             self.collect_logs_per_pod,
             utils.get_pods_status_iterator_by_labels(
@@ -181,7 +182,7 @@ class SysdumpCollector(object):
         self.collect_gops(label_selector, node_ip_filter, "stack")
 
     def collect_gops(self, label_selector, node_ip_filter, type_of_stat):
-        pool = ThreadPool(multiprocessing.cpu_count() - 1)
+        pool = ThreadPool(min(32, multiprocessing.cpu_count() + 4))
         pool.map(
             functools.partial(self.collect_gops_per_pod,
                               type_of_stat=type_of_stat),
@@ -308,7 +309,7 @@ class SysdumpCollector(object):
                 secret_file_name))
 
     def collect_cilium_bugtool_output(self, label_selector, node_ip_filter):
-        pool = ThreadPool(multiprocessing.cpu_count())
+        pool = ThreadPool(min(32, multiprocessing.cpu_count() + 4))
         pool.map(
             self.collect_cilium_bugtool_output_per_pod,
             utils.get_pods_status_iterator_by_labels(
