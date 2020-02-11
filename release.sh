@@ -6,7 +6,7 @@
 # releases and the VERSION file to determine the previous and next releases
 # of this tool, and instructs the maintainer how to prepare the release.
 
-RELEASE_BASE_URL="https://github.com/cilium/cluster-diagnosis/releases"
+RELEASE_BASE_URL="https://github.com/cilium/cilium-sysdump/releases"
 LATEST_RELEASE_URL="$RELEASE_BASE_URL/latest"
 CREATE_RELEASE_URL="$RELEASE_BASE_URL/new"
 NEXT_RELEASE="v$(cat VERSION)"
@@ -22,7 +22,7 @@ echo; echo "## Changes"
 git shortlog "$PREVIOUS_RELEASE"..
 echo; echo "Next steps:"
 echo "1) Create release at $CREATE_RELEASE_URL"
-echo "2) Upload the freshly compiled cluster-diagnosis.zip from this directory"
+echo "2) Upload the freshly compiled cilium-sysdump.zip from this directory"
 echo "3) Make the release using release notes above"
 echo "4) Update VERSION"
 echo "5) Submit version bump PR"
