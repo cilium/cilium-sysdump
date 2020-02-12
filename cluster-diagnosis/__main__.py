@@ -44,12 +44,18 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Cluster diagnosis '
                                                  'tool.')
 
-    parser.add_argument('--cilium-ns', type=str, default='kube-system',
-                        help="specify k8s namespace Cilium is running in")
+    parser.add_argument('--cilium-ns', type=str, default=namespace.cilium_ns,
+                        help="specify the k8s namespace Cilium is running in")
+    parser.add_argument('--hubble-ns', type=str, default=namespace.hubble_ns,
+                        help="specify the k8s namespace Hubble is running in")
     parser.add_argument('--cilium-labels',
                         help='Labels of cilium pods running in '
                         'the cluster',
                         default="k8s-app=cilium")
+    parser.add_argument('--hubble-labels',
+                        help='Labels of hubble pods running in '
+                        'the cluster',
+                        default="k8s-app=hubble")
     parser.add_argument('-v', '--version', required=False, action='store_true',
                         help="get the version of this tool")
     # Add an optional subparser for the sysdump command.
@@ -97,14 +103,20 @@ if __name__ == "__main__":
         print(__version__)
         sys.exit(0)
 
-    # Automatically infer Cilium's namespace using Cilium daemonset's namespace
+    # Automatically infer Cilium and Hubble namespace using Cilium and Hubble
+    # daemonset's namespaces respectively
     # Fall back to the specified namespace in the input argument if it fails.
     try:
-        status = utils.get_resource_status(
-            "pod", full_name="", label=args.cilium_labels)
+        status = utils.get_resource_status("pod", label=args.cilium_labels)
         namespace.cilium_ns = status[0]
     except RuntimeError as e:
         namespace.cilium_ns = args.cilium_ns
+        pass
+    try:
+        status = utils.get_resource_status("pod", label=args.hubble_labels)
+        namespace.hubble_ns = status[0]
+    except RuntimeError as e:
+        namespace.hubble_ns = args.hubble_ns
         pass
     try:
         if args.sysdump:
@@ -118,7 +130,8 @@ if __name__ == "__main__":
                 args.size_limit,
                 args.output,
                 args.quick,
-                args.cilium_labels)
+                args.cilium_labels,
+                args.hubble_labels)
             sysdumpcollector.collect(args.nodes)
             sysdumpcollector.archive()
             sys.exit(0)
