@@ -15,7 +15,7 @@
 .PHONY: build version
 
 check: check-tools
-	pycodestyle .
+	pycodestyle --exclude=venv,.git,__pycache__ $(CURDIR)
 
 check-tools:
 	command -v pycodestyle >/dev/null 2>&1 || { echo "Package pycodestyle not installed. Aborting." >&2; exit 1; }
