@@ -38,81 +38,6 @@ if sys.stdout.isatty():
             logging.ERROR))
 log = logging.getLogger(__name__)
 
-STATUS_RUNNING = 'Running'
-STATUS_NOT_RUNNING = 'Not Running'
-
-
-class ModuleCheck:
-    """Checks whether the module conforms to a certain state.
-
-    Args:
-        summary (string): A summary of what the check does.
-        check_cb (callback): A callback function for performing the check.
-    """
-
-    def __init__(
-            self,
-            summary,
-            check_cb):
-        self.name = summary
-        self.check_cb = check_cb
-
-    def success_cb(self):
-        """Default callback function to call when the ModuleCheck succeeds."""
-        # TODO: Perform additional actions (like storing debug data in S3)
-        log.info("-- Success --\n")
-        return
-
-    def failure_cb(self):
-        """Default callback function to call when the ModuleCheck fails."""
-        # TODO: Perform additional actions (like storing debug data in S3)
-        log.error("-- Failure --\n")
-        return
-
-    def get_title(self):
-        return "-- " + self.name + " --"
-
-    def run(self):
-        log.info(self.get_title())
-        if not self.check_cb():
-            self.failure_cb()
-            return False
-        else:
-            self.success_cb()
-            return True
-
-
-class ModuleCheckGroup:
-    """Ordered list of ModuleChecks
-
-    Runs the ModuleChecks in order. If a ModuleCheck fails, the ModuleChecks
-     after that ModuleCheck would not be executed.
-
-    Args:
-        name (string): the name of the group of ModuleChecks.
-        checks (list): the list of ModuleCheck objects.
-    """
-
-    def __init__(self, name, checks=None):
-        self.name = name
-        self.checks = checks
-
-    def get_title(self):
-        return "== " + self.name + " =="
-
-    def add(self, check):
-        if self.checks is None:
-            self.checks = []
-        self.checks.append(check)
-        return self
-
-    def run(self):
-        log.info(self.get_title())
-        for check in self.checks:
-            if not check.run():
-                return False
-        return True
-
 
 ResourceStatus_ = collections.namedtuple(
     'ResourceStatus',
@@ -174,34 +99,6 @@ def get_resource_status(type, full_name="", label=""):
                           name=split_line[1])
 
 
-def get_nodes():
-    """Returns a list of nodes. """
-    COMMAND = "kubectl get nodes | grep -v NAME | awk '{print $1}'"
-    try:
-        output = subprocess.check_output(COMMAND, shell=True)
-    except subprocess.CalledProcessError as grepexc:
-        log.error("error code: {} {}".format(grepexc.returncode,
-                                             grepexc.output))
-        return []
-    return output.decode().splitlines()
-
-
-def get_pod_config(pod_name):
-    """Returns the pod config of a k8s pod with name pod_name. """
-    COMMAND = "kubectl describe pod {} -n {}".format(pod_name,
-                                                     namespace.cilium_ns)
-    try:
-        encoded_output = subprocess.check_output(COMMAND, shell=True)
-    except subprocess.CalledProcessError as grepexc:
-        log.error("error code: {} {}".format(grepexc.returncode,
-                                             grepexc.output))
-        return None
-    output = encoded_output.decode()
-    if output == "":
-        log.error("could not get pod configuration.")
-    return output
-
-
 PodStatus_ = collections.namedtuple('PodStatus',
                                     'name ready_status status node_name '
                                     'namespace')
@@ -216,89 +113,6 @@ class PodStatus(PodStatus_):
         namespace (string): the namespace of the pod
     """
     pass
-
-
-def get_pods_summarized_status_iterator(label_selector):
-    """Returns a summarized status of the pods by retrieving the status
-    multiple times.
-
-    This helps avoid any false negatives that can occur
-    in the scenario wherein the status is checked just after a pod restart.
-
-    Args:
-        label_selector - the label selector to select the pods.
-
-    Returns:
-        An object of type PodStatus.
-    """
-    pod_status_map = {}
-    for attempt in range(0, 5):
-        # These retry attempts will take some time. Provide some form of
-        # visual feedback to the user.
-        # Cannot use log as it'll print on a new line every time.
-        sys.stdout.write('.')
-        sys.stdout.flush()
-        for pod_status in \
-                get_pods_status_iterator_by_labels(label_selector, [], False):
-            status_verdict = STATUS_RUNNING
-            try:
-                temp_pod_status = get_pod_status(pod_status.name)
-                if (temp_pod_status.status != STATUS_RUNNING):
-                    # Prefer not Running status over `Running` status.
-                    status_verdict = temp_pod_status.status
-            except RuntimeError:
-                status_verdict = STATUS_NOT_RUNNING
-            pod_status_map[pod_status.name] = PodStatus(
-                pod_status.name,
-                pod_status.ready_status,
-                status_verdict,
-                pod_status.node_name,
-                pod_status.namespace)
-        time.sleep(2)
-    sys.stdout.write('\n')
-    sys.stdout.flush()
-    for pod_name in pod_status_map:
-        yield pod_status_map[pod_name]
-
-
-def get_pod_status(full_pod_name):
-    """Returns an iterator to the status of pods.
-
-    Args:
-        full_pod_name - the complete pod name.
-
-    Returns:
-        An object of type PodStatus.
-    """
-
-    cmd = ("kubectl get pods --all-namespaces -o wide "
-           "| awk 'BEGIN{{offset=0}}"
-           "/NOMINATED/{{offset=1}}"
-           "/{}/{{print $2 \" \" $3 \" \" $4 \" \" $(NF-offset) \" \" $1}}'"
-           ).format(full_pod_name)
-    try:
-        encoded_output = subprocess.check_output(cmd, shell=True)
-    except subprocess.CalledProcessError as exc:
-        log.error("command to get status of {} has "
-                  "failed. error code: "
-                  "{} {}".format(full_pod_name,
-                                 exc.returncode, exc.output))
-        return
-    output = encoded_output.decode()
-    if output == "":
-        log.error("pod {} is not running on the cluster".format(
-                  full_pod_name))
-        raise RuntimeError("pod {} is not running on the cluster".format(
-                           full_pod_name))
-    # Example line:
-    # name-blah-sr64c 0/1 CrashLoopBackOff
-    # ip-172-0-33-255.us-west-2.compute.internal kube-system
-    split_line = output.split(' ')
-    return PodStatus(name=split_line[0],
-                     ready_status=split_line[1],
-                     status=split_line[2],
-                     node_name=split_line[3],
-                     namespace=split_line[4])
 
 
 def get_pods_status_iterator_by_labels(label_selector, host_ip_filter,
@@ -381,23 +195,6 @@ def get_pods_status_iterator_by_labels(label_selector, host_ip_filter,
                         status=split_line[2],
                         node_name=split_line[3],
                         namespace=split_line[4])
-
-
-def getopts(argv):
-    """Collect command line options in a dictionary.
-
-        We cannot use sys.getopt as it is supported only in Python3.
-    """
-    opts = {}
-    while argv:
-        if argv[0][0] == '-':
-            if len(argv) > 1:
-                opts[argv[0]] = argv[1]
-            else:
-                opts[argv[0]] = None
-        # Reduce the arg list
-        argv = argv[1:]
-    return opts
 
 
 def get_current_time():
