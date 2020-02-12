@@ -149,9 +149,8 @@ def get_pods_status_iterator_by_labels(label_selector, host_ip_filter,
     output = encoded_output.decode()
     if output == "":
         if must_exist:
-            log.error("no pods with labels "
-                      "{} are running on the cluster".format(
-                        label_selector))
+            log.warning("no pods with labels {} are running on the cluster"
+                        .format(label_selector))
         return
 
     # kubectl field selector supports listing pods based on a particular
