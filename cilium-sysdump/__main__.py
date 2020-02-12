@@ -97,14 +97,14 @@ if __name__ == "__main__":
     try:
         status = utils.get_resource_status("pod", label=args.cilium_labels)
         namespace.cilium_ns = status[0]
-    except RuntimeError as e:
+    except RuntimeError:
         namespace.cilium_ns = args.cilium_ns
         pass
 
     try:
         status = utils.get_resource_status("pod", label=args.hubble_labels)
         namespace.hubble_ns = status[0]
-    except RuntimeError as e:
+    except RuntimeError:
         namespace.hubble_ns = args.hubble_ns
         pass
 
@@ -124,7 +124,7 @@ if __name__ == "__main__":
         sysdumpcollector.collect(args.nodes)
         sysdumpcollector.archive()
         sys.exit(0)
-    except AttributeError as e:
+    except AttributeError:
         log.exception("Fatal error in collecting sysdump")
         sys.exit(1)
 
