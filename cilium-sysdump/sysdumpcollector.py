@@ -346,8 +346,8 @@ class SysdumpCollector(object):
                     output_file_name = match.group(1)
             if output_file_name == "":
                 log.error(
-                    "Error: {}. Could not find cilium-bugtool output"
-                    " file name".format(exc))
+                    "Error: could not find cilium-bugtool output file name",
+                )
 
             copyCmd = "kubectl cp {}/{}:{} ./{}/{}".format(
                 namespace, podname, output_file_name,
