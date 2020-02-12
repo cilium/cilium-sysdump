@@ -207,8 +207,8 @@ class SysdumpCollector(object):
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError as exc:
             if exc.returncode != 0:
-                log.error("Error: {}. Could not collect gops {}: {}"
-                          .format(exc, type_of_stat, file_name))
+                log.warning("Warning: {}. Could not collect gops {}: {}"
+                            .format(exc, type_of_stat, file_name))
         else:
             log.info("collected gops {} file: {}".format(
                 type_of_stat, file_name))
@@ -221,8 +221,8 @@ class SysdumpCollector(object):
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError as exc:
             if exc.returncode != 0:
-                log.error("Error: {}. Could not collect kubernetes network "
-                          "policy: {}".format(exc, netpol_file_name))
+                log.warning("Warning: {}. Could not collect kubernetes network"
+                            " policy: {}".format(exc, netpol_file_name))
         else:
             log.info("collected kubernetes network policy: {}"
                      .format(netpol_file_name))
@@ -235,8 +235,8 @@ class SysdumpCollector(object):
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError as exc:
             if exc.returncode != 0:
-                log.error("Error: {}. Could not collect cilium network "
-                          "policy: {}".format(exc, cnp_file_name))
+                log.warning("Warning: {}. Could not collect cilium network "
+                            "policy: {}".format(exc, cnp_file_name))
         else:
             log.info("collected cilium network policy: {}"
                      .format(cnp_file_name))
@@ -265,8 +265,8 @@ class SysdumpCollector(object):
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError as exc:
             if exc.returncode != 0:
-                log.error("Error: {}. Unable to get {} daemonset yaml"
-                          .format(exc, name))
+                log.warning("Warning: {}. Unable to get {} daemonset yaml"
+                            .format(exc, name))
         else:
             log.info("collected {} daemonset yaml file: {}".format(
                 name, file_name))
@@ -281,8 +281,8 @@ class SysdumpCollector(object):
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError as exc:
             if exc.returncode != 0:
-                log.error("Error: {}. Unable to get cilium configmap yaml"
-                          .format(exc))
+                log.warning("Warning: {}. Unable to get cilium configmap yaml"
+                            .format(exc))
         else:
             log.info("collected cilium configmap yaml file: {}".format(
                 configmap_file_name))
@@ -305,8 +305,8 @@ class SysdumpCollector(object):
                 fp.write(json.dumps(output))
         except subprocess.CalledProcessError as exc:
             if exc.returncode != 0:
-                log.error("Error: {}. Unable to get and redact cilium secret"
-                          .format(exc))
+                log.warning("Warning: {}. Unable to get and redact cilium "
+                            "secret".format(exc))
         else:
             log.info("collected and redacted cilium secret file: {}".format(
                 secret_file_name))
