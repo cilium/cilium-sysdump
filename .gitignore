@@ -2,8 +2,14 @@
 venv/
 
 # Generated artifacts
-cilium-sysdump.zip
 cilium-sysdump/_version.py
+
+# File tytpes
+*.json
+*.txt
+*.yaml
+*.yml
+*.zip
 
 # Editor
 .idea/
