@@ -12,12 +12,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import namespace
 
 import collections
-import sys
-import subprocess
 import logging
+import subprocess
+import sys
 import time
 
 FORMAT = '%(levelname)s %(message)s'
