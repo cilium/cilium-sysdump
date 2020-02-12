@@ -14,3 +14,4 @@
 # limitations under the License.
 
 cilium_ns = "kube-system"
+hubble_ns = cilium_ns

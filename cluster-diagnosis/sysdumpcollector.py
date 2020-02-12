@@ -42,13 +42,14 @@ class SysdumpCollector(object):
     def __init__(
             self,
             sysdump_dir_name, since, size_limit, output, is_quick_mode,
-            cilium_labels):
+            cilium_labels, hubble_labels):
         self.sysdump_dir_name = sysdump_dir_name
         self.since = since
         self.size_limit = size_limit
         self.output = output
         self.is_quick_mode = is_quick_mode
         self.cilium_labels = cilium_labels
+        self.hubble_labels = hubble_labels
 
     def collect_nodes_overview(self):
         nodes_overview_file_name = "nodes-{}.json".format(
@@ -253,20 +254,22 @@ class SysdumpCollector(object):
         else:
             log.info("collected cilium endpoints: {}".format(cep_file_name))
 
-    def collect_daemonset_yaml(self):
-        daemonset_file_name = "cilium-ds-{}.yaml".format(
-            utils.get_current_time())
-        cmd = "kubectl get ds cilium -n {} -oyaml > {}/{}".format(
-            namespace.cilium_ns, self.sysdump_dir_name, daemonset_file_name)
+    def collect_daemonset_yaml(self, name="cilium"):
+        ns = namespace.cilium_ns
+        if name == "hubble":
+            ns = namespace.hubble_ns
+        file_name = "{}-ds-{}.yaml".format(name, utils.get_current_time())
+        cmd = "kubectl get ds {} -n {} -oyaml > {}/{}".format(
+            name, ns, self.sysdump_dir_name, file_name)
         try:
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError as exc:
             if exc.returncode != 0:
-                log.error("Error: {}. Unable to get cilium daemonset yaml"
-                          .format(exc))
+                log.error("Error: {}. Unable to get {} daemonset yaml"
+                          .format(exc, name))
         else:
-            log.info("collected cilium daemonset yaml file: {}".format(
-                daemonset_file_name))
+            log.info("collected {} daemonset yaml file: {}".format(
+                name, file_name))
 
     def collect_cilium_configmap(self):
         configmap_file_name = "cilium-configmap-{}.yaml".format(
@@ -427,6 +430,8 @@ class SysdumpCollector(object):
         self.collect_services_overview()
         log.info("collecting cilium gops stats ...")
         self.collect_gops_stats(self.cilium_labels, node_ip_filter)
+        log.info("collecting hubble gops stats ...")
+        self.collect_gops_stats(self.hubble_labels, node_ip_filter)
         log.info("collecting kubernetes network policy ...")
         self.collect_netpol()
         log.info("collecting cilium network policy ...")
@@ -436,7 +441,9 @@ class SysdumpCollector(object):
         log.info("collecting cilium endpoints ...")
         self.collect_cep()
         log.info("collecting cilium daemonset yaml ...")
-        self.collect_daemonset_yaml()
+        self.collect_daemonset_yaml(name="cilium")
+        log.info("collecting hubble daemonset yaml ...")
+        self.collect_daemonset_yaml(name="hubble")
         log.info("collecting cilium configmap yaml ...")
         self.collect_cilium_configmap()
         if self.is_quick_mode:
@@ -447,6 +454,8 @@ class SysdumpCollector(object):
         log.info("collecting cilium logs ...")
         self.collect_logs(self.cilium_labels, node_ip_filter)
         self.collect_logs("io.cilium/app=operator", [])
+        log.info("collecting hubble logs ...")
+        self.collect_logs(self.hubble_labels, node_ip_filter)
 
     def archive(self):
         filename = self.output or self.sysdump_dir_name
