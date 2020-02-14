@@ -108,75 +108,79 @@ class SysdumpCollector(object):
         pool.join()
 
     def collect_logs_per_pod(self, podstatus):
-        log_file_name = "{}-{}".format(podstatus.name,
-                                       utils.get_current_time())
-        command = "kubectl logs {} --timestamps=true --since={} " \
-            "--limit-bytes={} -n {} {} > {}/{}.log"
-        cmd = command.format(
-            "", self.since, self.size_limit, podstatus.namespace,
-            podstatus.name, self.sysdump_dir_name, log_file_name)
-        try:
-            subprocess.check_output(cmd, shell=True)
-        except subprocess.CalledProcessError as exc:
-            if exc.returncode != 0:
-                log.error("Error: {}. Could not collect log file: {}"
-                          .format(exc, log_file_name))
-        else:
-            log.info("collected log file: {}".format(log_file_name))
-
-        # Only get logs from previous containers if pod has restarted.
-        # Need to get the pod to access its restartCount.
-        podCommandPreFormatted = "kubectl get pod {} -n {} -o json"
-        podCmd = podCommandPreFormatted.format(
-            podstatus.name, podstatus.namespace,
-        )
-
-        try:
-            podOutput = subprocess.check_output(podCmd, shell=True)
-        except subprocess.CalledProcessError as exc:
-            if exc.returncode != 0:
-                log.debug("Debug {}: could not get pod {}").format(
-                    exc, podstatus.name)
-        else:
-            # Examine JSON output to see if restartCount > 0
-            decodedPodOutput = podOutput.decode()
-            jsonOutput = json.loads(decodedPodOutput)
-            containerStatuses = jsonOutput['status']['containerStatuses']
-
-            gatherPrevLogs = False
-
-            for value in containerStatuses:
-                restartCount = value['restartCount']
-                if int(restartCount) > 0:
-                    gatherPrevLogs = True
-                    break
-
-            if gatherPrevLogs:
-                log_file_name_previous = "{0}-previous".format(
-                    log_file_name)
-                command = "kubectl logs --previous --timestamps=true " \
-                          "--since={} " \
-                          "--limit-bytes={} -n {} {} > {}/{}.log"
-                cmd = command.format(self.since, self.size_limit,
-                                     podstatus.namespace,
-                                     podstatus.name,
-                                     self.sysdump_dir_name,
-                                     log_file_name_previous)
-                try:
-                    subprocess.check_output(cmd, shell=True)
-                except subprocess.CalledProcessError as exc:
-                    if exc.returncode != 0:
-                        log.debug(
-                            "Debug: {}. Could not collect previous "
-                            "log for '{}': {}"
-                            .format(exc, podstatus.name, log_file_name))
-                else:
-                    log.info("collected log file: {}".format(
-                        log_file_name_previous))
-
+        containers = utils.get_container_names_per_pod(podstatus.namespace,
+                                                       podstatus.name)
+        for container in containers:
+            log_file_name = "{}-{}".format(podstatus.name,
+                                           utils.get_current_time())
+            command = "kubectl logs {} --container={} --timestamps=true " \
+                      "--since={} --limit-bytes={} -n {} > {}/{}.log"
+            cmd = command.format(
+                podstatus.name, container, self.since, self.size_limit,
+                podstatus.namespace, self.sysdump_dir_name, log_file_name)
+            try:
+                subprocess.check_output(cmd, shell=True)
+            except subprocess.CalledProcessError as exc:
+                if exc.returncode != 0:
+                    log.error("Error: {}. Could not collect log file: {}"
+                              .format(exc, log_file_name))
             else:
-                log.debug("no previous pod logs to gather for pod {}".format(
-                          podstatus.name))
+                log.info("collected log file: {}".format(log_file_name))
+
+            # Only get logs from previous containers if pod has restarted.
+            # Need to get the pod to access its restartCount.
+            podCommandPreFormatted = "kubectl get pod {} -n {} -o json"
+            podCmd = podCommandPreFormatted.format(
+                podstatus.name, podstatus.namespace,
+            )
+
+            try:
+                podOutput = subprocess.check_output(podCmd, shell=True)
+            except subprocess.CalledProcessError as exc:
+                if exc.returncode != 0:
+                    log.debug("Debug {}: could not get pod {}").format(
+                        exc, podstatus[0])
+            else:
+                # Examine JSON output to see if restartCount > 0
+                decodedPodOutput = podOutput.decode()
+                jsonOutput = json.loads(decodedPodOutput)
+                containerStatuses = jsonOutput['status']['containerStatuses']
+
+                gatherPrevLogs = False
+
+                for value in containerStatuses:
+                    restartCount = value['restartCount']
+                    if int(restartCount) > 0:
+                        gatherPrevLogs = True
+                        break
+                if gatherPrevLogs:
+                    log_file_name_previous = "{0}-previous".format(
+                        log_file_name)
+                    command = "kubectl logs --previous --timestamps=true " \
+                              "--container={} " \
+                              "--since={} " \
+                              "--limit-bytes={} -n {} {} > {}/{}.log"
+                    cmd = command.format(container, self.since,
+                                         self.size_limit,
+                                         podstatus.namespace, podstatus.name,
+                                         self.sysdump_dir_name,
+                                         log_file_name_previous)
+                    try:
+                        subprocess.check_output(cmd, shell=True)
+                    except subprocess.CalledProcessError as exc:
+                        if exc.returncode != 0:
+                            log.debug(
+                                "Debug: {}. Could not collect previous "
+                                "log for '{}': {}"
+                                .format(exc, podstatus.name, log_file_name))
+                    else:
+                        log.info("collected log file: {}".format(
+                            log_file_name_previous))
+
+                else:
+                    log.debug("no previous pod logs to gather for "
+                              "pod/container {}/{}".format(
+                                  podstatus.name, container))
 
     def collect_gops_stats(self, label_selector, node_ip_filter):
         self.collect_gops(label_selector, node_ip_filter, "stats")
@@ -194,25 +198,28 @@ class SysdumpCollector(object):
         pool.join()
 
     def collect_gops_per_pod(self, podstatus, type_of_stat):
-        file_name = "{}-{}-{}.txt".format(
-            podstatus.name,
-            utils.get_current_time(),
-            type_of_stat)
-        cmd = "kubectl exec -n {} {} -- /bin/gops {} 1 > {}/{}".format(
-            podstatus.namespace,
-            podstatus.name,
-            type_of_stat,
-            self.sysdump_dir_name,
-            file_name)
-        try:
-            subprocess.check_output(cmd, shell=True)
-        except subprocess.CalledProcessError as exc:
-            if exc.returncode != 0:
-                log.warning("Warning: {}. Could not collect gops {}: {}"
-                            .format(exc, type_of_stat, file_name))
-        else:
-            log.info("collected gops {} file: {}".format(
-                type_of_stat, file_name))
+        containers = utils.get_container_names_per_pod(podstatus.namespace,
+                                                       podstatus.name)
+        for container in containers:
+            if container == "hubble-ui":
+                continue  # gops does not run in hubble-ui container
+            file_name = "{}-{}-{}-{}.txt".format(
+                podstatus.name,
+                container,
+                utils.get_current_time(),
+                type_of_stat)
+            cmd = "kubectl exec -n {} {} -c {} -- /bin/gops {} 1 > {}/{}" \
+                  .format(podstatus.namespace, podstatus.name, container,
+                          type_of_stat, self.sysdump_dir_name, file_name)
+            try:
+                subprocess.check_output(cmd, shell=True)
+            except subprocess.CalledProcessError as exc:
+                if exc.returncode != 0:
+                    log.warning("Warning: {}. Could not collect gops {}: {}"
+                                .format(exc, type_of_stat, file_name))
+            else:
+                log.info("collected gops {} file: {}".format(
+                    type_of_stat, file_name))
 
     def collect_netpol(self):
         netpol_file_name = "netpol-{}.yaml".format(utils.get_current_time())

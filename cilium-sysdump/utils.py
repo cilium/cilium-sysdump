@@ -195,5 +195,23 @@ def get_pods_status_iterator_by_labels(label_selector, host_ip_filter,
                         namespace=split_line[4])
 
 
+def get_container_names_per_pod(pod_namespace, pod_name):
+    """Return the list of container names in the given pod"""
+    cmd = "kubectl get pods {} -n {} " \
+          "-o jsonpath='{}'".format(
+              pod_name, pod_namespace, "{.spec.containers[*].name}",
+          )
+    try:
+        output = subprocess.check_output(cmd, shell=True)
+    except subprocess.CalledProcessError:
+        pass
+    output = output.decode().strip()
+    if not output:
+        log.error("Error: Could not collect pod container name(s) for {}/{}"
+                  .format(pod_namespace, pod_name))
+        return []
+    return output.split(" ")
+
+
 def get_current_time():
     return time.strftime("%Y%m%d-%H%M%S")
