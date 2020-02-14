@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2017-2019 Authors of Cilium
+# Copyright 2017-2020 Authors of Cilium
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -108,13 +108,13 @@ class SysdumpCollector(object):
         pool.join()
 
     def collect_logs_per_pod(self, podstatus):
-        log_file_name = "{}-{}".format(podstatus[0],
+        log_file_name = "{}-{}".format(podstatus.name,
                                        utils.get_current_time())
         command = "kubectl logs {} --timestamps=true --since={} " \
             "--limit-bytes={} -n {} {} > {}/{}.log"
         cmd = command.format(
-            "", self.since, self.size_limit, podstatus[4], podstatus[0],
-            self.sysdump_dir_name, log_file_name)
+            "", self.since, self.size_limit, podstatus.namespace,
+            podstatus.name, self.sysdump_dir_name, log_file_name)
         try:
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError as exc:
@@ -128,7 +128,7 @@ class SysdumpCollector(object):
         # Need to get the pod to access its restartCount.
         podCommandPreFormatted = "kubectl get pod {} -n {} -o json"
         podCmd = podCommandPreFormatted.format(
-            podstatus[0], podstatus[4]
+            podstatus.name, podstatus.namespace,
         )
 
         try:
@@ -136,7 +136,7 @@ class SysdumpCollector(object):
         except subprocess.CalledProcessError as exc:
             if exc.returncode != 0:
                 log.debug("Debug {}: could not get pod {}").format(
-                    exc, podstatus[0])
+                    exc, podstatus.name)
         else:
             # Examine JSON output to see if restartCount > 0
             decodedPodOutput = podOutput.decode()
@@ -158,7 +158,8 @@ class SysdumpCollector(object):
                           "--since={} " \
                           "--limit-bytes={} -n {} {} > {}/{}.log"
                 cmd = command.format(self.since, self.size_limit,
-                                     podstatus[4], podstatus[0],
+                                     podstatus.namespace,
+                                     podstatus.name,
                                      self.sysdump_dir_name,
                                      log_file_name_previous)
                 try:
@@ -168,14 +169,14 @@ class SysdumpCollector(object):
                         log.debug(
                             "Debug: {}. Could not collect previous "
                             "log for '{}': {}"
-                            .format(exc, podstatus[0], log_file_name))
+                            .format(exc, podstatus.name, log_file_name))
                 else:
                     log.info("collected log file: {}".format(
                         log_file_name_previous))
 
             else:
                 log.debug("no previous pod logs to gather for pod {}".format(
-                          podstatus[0]))
+                          podstatus.name))
 
     def collect_gops_stats(self, label_selector, node_ip_filter):
         self.collect_gops(label_selector, node_ip_filter, "stats")
@@ -194,12 +195,12 @@ class SysdumpCollector(object):
 
     def collect_gops_per_pod(self, podstatus, type_of_stat):
         file_name = "{}-{}-{}.txt".format(
-            podstatus[0],
+            podstatus.name,
             utils.get_current_time(),
             type_of_stat)
         cmd = "kubectl exec -n {} {} -- /bin/gops {} 1 > {}/{}".format(
-            podstatus[4],
-            podstatus[0],
+            podstatus.namespace,
+            podstatus.name,
             type_of_stat,
             self.sysdump_dir_name,
             file_name)
@@ -321,20 +322,18 @@ class SysdumpCollector(object):
         pool.join()
 
     def collect_cilium_bugtool_output_per_pod(self, podstatus):
-        podname = podstatus[0]
-        namespace = podstatus[4]
         bugtool_output_dir = "bugtool-{}-{}".format(
-            podname, utils.get_current_time())
+            podstatus.name, utils.get_current_time())
         bugtool_output_file_name = "{}.tar".format(bugtool_output_dir)
         cmd = "kubectl exec -n {} {} cilium-bugtool".format(
-            namespace, podname)
+            podstatus.namespace, podstatus.name)
         try:
             encoded_output = subprocess.check_output(cmd.split(), shell=False)
         except subprocess.CalledProcessError as exc:
             if exc.returncode != 0:
                 log.error(
                     "Error: {}. Could not run cilium-bugtool on {}"
-                    .format(exc, podname))
+                    .format(exc, podstatus.name))
         else:
             output = encoded_output.decode()
             p = re.compile(
@@ -350,7 +349,7 @@ class SysdumpCollector(object):
                 )
 
             copyCmd = "kubectl cp {}/{}:{} ./{}/{}".format(
-                namespace, podname, output_file_name,
+                podstatus.namespace, podstatus.name, output_file_name,
                 self.sysdump_dir_name, bugtool_output_file_name)
             mkdirCmd = "mkdir -p ./{}/{}".format(
                     self.sysdump_dir_name, bugtool_output_dir)
