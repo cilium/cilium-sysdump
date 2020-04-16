@@ -208,7 +208,9 @@ class SysdumpCollector(object):
                 container,
                 utils.get_current_time(),
                 type_of_stat)
-            cmd = "kubectl exec -n {} {} -c {} -- /bin/gops {} 1 > {}/{}" \
+            cmd = "kubectl exec -n {} {} -c {} -- /bin/sh -c " \
+                "'/bin/gops {} $(cat /var/run/cilium/cilium.pid)'" \
+                " > {}/{}" \
                   .format(podstatus.namespace, podstatus.name, container,
                           type_of_stat, self.sysdump_dir_name, file_name)
             try:
