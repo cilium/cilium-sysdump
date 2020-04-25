@@ -262,6 +262,32 @@ class SysdumpCollector(object):
         else:
             log.info("collected cilium endpoints: {}".format(cep_file_name))
 
+    def collect_ciliumids(self):
+        ciliumids_file_name = "ciliumidentities-{}.yaml".format(utils.get_current_time())
+        cmd = "kubectl get ciliumidentities -o yaml --all-namespaces > {}/{}".format(
+            self.sysdump_dir_name, ciliumids_file_name)
+        try:
+            subprocess.check_output(cmd, shell=True)
+        except subprocess.CalledProcessError as exc:
+            if exc.returncode != 0:
+                log.error("Error: {}. Could not collect cilium identities {}"
+                          .format(exc, ciliumids_file_name))
+        else:
+            log.info("collected cilium identities: {}".format(ciliumids_file_name))
+
+    def collect_ciliumnodes(self):
+        ciliumnodes_file_name = "ciliumnodes-{}.yaml".format(utils.get_current_time())
+        cmd = "kubectl get ciliumnodes -o yaml --all-namespaces > {}/{}".format(
+            self.sysdump_dir_name, ciliumnodes_file_name)
+        try:
+            subprocess.check_output(cmd, shell=True)
+        except subprocess.CalledProcessError as exc:
+            if exc.returncode != 0:
+                log.error("Error: {}. Could not collect cilium nodes {}"
+                          .format(exc, ciliumnodes_file_name))
+        else:
+            log.info("collected cilium nodes: {}".format(ciliumnodes_file_name))
+
     def collect_daemonset_yaml(self, name="cilium"):
         ns = namespace.cilium_ns
         if name == "hubble":
@@ -446,6 +472,10 @@ class SysdumpCollector(object):
         self.collect_cilium_secret()
         log.info("collecting cilium endpoints ...")
         self.collect_cep()
+        log.info("collecting cilium identities ...")
+        self.collect_ciliumids()
+        log.info("collecting cilium nodes ...")
+        self.collect_ciliumnodes()
         log.info("collecting cilium daemonset yaml ...")
         self.collect_daemonset_yaml(name="cilium")
         log.info("collecting hubble daemonset yaml ...")
