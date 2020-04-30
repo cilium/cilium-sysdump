@@ -72,7 +72,9 @@ def get_resource_status(type, full_name="", label="", must_exist=True):
           "| grep \"{}\" | awk '{{print $1 \" \" $2}}'"
     cmd = cmd.format(type, label, full_name)
     try:
-        encoded_output = subprocess.check_output(cmd, shell=True)
+        encoded_output = subprocess.check_output(
+            cmd, shell=True, stderr=subprocess.STDOUT,
+        )
     except subprocess.CalledProcessError as exc:
         log.warning("command to get status of {} has "
                     "failed. error code: "
@@ -140,7 +142,9 @@ def get_pods_status_iterator_by_labels(label_selector, host_ip_filter,
            "{{@.spec.nodeName}}{{\" \"}}"
            "{{@.metadata.namespace}}{{\"\\n\"}}'").format(label_selector)
     try:
-        encoded_output = subprocess.check_output(cmd, shell=True)
+        encoded_output = subprocess.check_output(
+            cmd, shell=True, stderr=subprocess.STDOUT,
+        )
     except subprocess.CalledProcessError as exc:
         log.error("command to get status of {} has "
                   "failed. error code: "
@@ -169,7 +173,8 @@ def get_pods_status_iterator_by_labels(label_selector, host_ip_filter,
         "|".join(map(str, host_ip_filter)))
     try:
         filter_output = subprocess.check_output(
-            host_ip_filter_cmd, shell=True)
+            host_ip_filter_cmd, shell=True, stderr=subprocess.STDOUT,
+        )
     except subprocess.CalledProcessError as exc:
         log.error("command to list filtered pods has "
                   "failed. error code: "
@@ -204,7 +209,9 @@ def get_container_names_per_pod(pod_namespace, pod_name):
               pod_name, pod_namespace, "{.spec.containers[*].name}",
           )
     try:
-        output = subprocess.check_output(cmd, shell=True)
+        output = subprocess.check_output(
+            cmd, shell=True, stderr=subprocess.STDOUT,
+        )
     except subprocess.CalledProcessError:
         pass
     output = output.decode().strip()
