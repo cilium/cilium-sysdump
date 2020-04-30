@@ -322,8 +322,8 @@ class SysdumpCollector(object):
                 fp.write(json.dumps(output))
         except subprocess.CalledProcessError as exc:
             if exc.returncode != 0:
-                log.warning("Warning: {}. Unable to get and redact cilium "
-                            "secret".format(exc))
+                log.info("{}. Unable to get and redact cilium secret (this is "
+                         "expected in CRD mode).".format(exc))
         else:
             log.info("collected and redacted cilium secret file: {}".format(
                 secret_file_name))
