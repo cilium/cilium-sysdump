@@ -53,7 +53,7 @@ class ResourceStatus(ResourceStatus_):
     pass
 
 
-def get_resource_status(type, full_name="", label=""):
+def get_resource_status(type, full_name="", label="", must_exist=True):
     """Returns the ResourceStatus of one particular Kubernetes resource.
 
     Args:
@@ -85,6 +85,8 @@ def get_resource_status(type, full_name="", label=""):
                            exc.returncode, exc.output))
     output = encoded_output.decode()
     if output == "":
+        if not must_exist:
+            return None
         log.warning(
             "{} \"{}\" with label \"{}\" can't be found in "
             "the cluster".format(type, full_name, label))

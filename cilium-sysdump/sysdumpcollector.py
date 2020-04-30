@@ -99,11 +99,14 @@ class SysdumpCollector(object):
     def collect_logs(self, label_selector, node_ip_filter):
         pool = ThreadPool(min(32, multiprocessing.cpu_count() + 4))
 
+        must_exist = not("hubble" in label_selector)  # hubble is optional
         pool.map(
             self.collect_logs_per_pod,
             utils.get_pods_status_iterator_by_labels(
                 label_selector,
-                node_ip_filter))
+                node_ip_filter,
+                must_exist=must_exist,
+            ))
         pool.close()
         pool.join()
 
@@ -189,11 +192,15 @@ class SysdumpCollector(object):
 
     def collect_gops(self, label_selector, node_ip_filter, type_of_stat):
         pool = ThreadPool(min(32, multiprocessing.cpu_count() + 4))
+        must_exist = not("hubble" in label_selector)  # hubble is optional
         pool.map(
             functools.partial(self.collect_gops_per_pod,
                               type_of_stat=type_of_stat),
             utils.get_pods_status_iterator_by_labels(
-                label_selector, node_ip_filter))
+                label_selector,
+                node_ip_filter,
+                must_exist=must_exist,
+            ))
         pool.close()
         pool.join()
 
@@ -273,8 +280,10 @@ class SysdumpCollector(object):
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError as exc:
             if exc.returncode != 0:
-                log.warning("Warning: {}. Unable to get {} daemonset yaml"
-                            .format(exc, name))
+                if name != "hubble":  # hubble is optional, do not warn
+                    log.warning("{}. Unable to get {} daemonset yaml".format(
+                        exc, name,
+                    ))
         else:
             log.info("collected {} daemonset yaml file: {}".format(
                 name, file_name))
@@ -321,10 +330,14 @@ class SysdumpCollector(object):
 
     def collect_cilium_bugtool_output(self, label_selector, node_ip_filter):
         pool = ThreadPool(min(32, multiprocessing.cpu_count() + 4))
+        must_exist = not("hubble" in label_selector)  # hubble is optional
         pool.map(
             self.collect_cilium_bugtool_output_per_pod,
             utils.get_pods_status_iterator_by_labels(
-                label_selector, node_ip_filter))
+                label_selector,
+                node_ip_filter,
+                must_exist=must_exist,
+            ))
         pool.close()
         pool.join()
 

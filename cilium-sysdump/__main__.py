@@ -102,8 +102,13 @@ if __name__ == "__main__":
         pass
 
     try:
-        status = utils.get_resource_status("pod", label=args.hubble_labels)
-        namespace.hubble_ns = status[0]
+        status = utils.get_resource_status(
+            "pod", label=args.hubble_labels, must_exist=False,
+        )
+        if status is None:
+            namespace.hubble_ns = args.hubble_ns
+        else:
+            namespace.hubble_ns = status[0]
     except RuntimeError:
         namespace.hubble_ns = args.hubble_ns
         pass
