@@ -15,3 +15,4 @@
 
 cilium_ns = "kube-system"
 hubble_ns = cilium_ns
+hubble_relay_ns = cilium_ns

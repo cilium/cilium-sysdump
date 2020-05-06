@@ -47,6 +47,10 @@ if __name__ == "__main__":
                         help="specify the k8s namespace Cilium is running in")
     parser.add_argument('--hubble-ns', type=str, default=namespace.hubble_ns,
                         help="specify the k8s namespace Hubble is running in")
+    parser.add_argument('--hubble-relay-ns', type=str,
+                        default=namespace.hubble_relay_ns,
+                        help="specify the k8s namespace Hubble-Relay is" +
+                             " running in")
     parser.add_argument('--cilium-labels',
                         help='Labels of cilium pods running in '
                         'the cluster',
@@ -55,6 +59,10 @@ if __name__ == "__main__":
                         help='Labels of hubble pods running in '
                         'the cluster',
                         default="k8s-app=hubble")
+    parser.add_argument('--hubble-relay-labels',
+                        help='Labels of hubble-relay pods running in '
+                        'the cluster',
+                        default="k8s-app=hubble-relay")
     parser.add_argument('-v', '--version', required=False, action='store_true',
                         help="get the version of this tool")
 
@@ -114,6 +122,18 @@ if __name__ == "__main__":
         pass
 
     try:
+        status = utils.get_resource_status(
+            "pod", label=args.hubble_relay_labels, must_exist=False,
+        )
+        if status is None:
+            namespace.hubble_relay_labels = args.hubble_relay_labels
+        else:
+            namespace.hubble_relay_labels = status[0]
+    except RuntimeError:
+        namespace.hubble_relay_ns = args.hubble_relay_ns
+        pass
+
+    try:
         sysdump_dir_name = "./cilium-sysdump-{}"\
             .format(time.strftime("%Y%m%d-%H%M%S"))
         if not os.path.exists(sysdump_dir_name):
@@ -125,7 +145,8 @@ if __name__ == "__main__":
             args.output,
             args.quick,
             args.cilium_labels,
-            args.hubble_labels)
+            args.hubble_labels,
+            args.hubble_relay_labels)
         sysdumpcollector.collect(args.nodes)
         sysdumpcollector.archive()
         sys.exit(0)
