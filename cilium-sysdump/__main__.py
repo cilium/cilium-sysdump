@@ -23,6 +23,7 @@ import sysdumpcollector
 import os
 import time
 import distutils.util
+import asyncio
 
 log = logging.getLogger(__name__)
 
@@ -84,6 +85,8 @@ if __name__ == "__main__":
                              'cilium bugtool output will'
                              ' not be collected.'
                              'Defaults to "false".')
+    parser.add_argument('-j', '--concurrent-jobs', default=0, type=int,
+                        help="Number of concurrent operations to perform.")
 
     args = parser.parse_args()
 
@@ -125,12 +128,13 @@ if __name__ == "__main__":
             args.output,
             args.quick,
             args.cilium_labels,
-            args.hubble_labels)
-        sysdumpcollector.collect(args.nodes)
+            args.hubble_labels,
+            args.concurrent_jobs,
+        )
+        # asyncio.set_child_watcher(asyncio.unix_events.FastChildWatcher())
+        asyncio.run(sysdumpcollector.collect(args.nodes))
         sysdumpcollector.archive()
         sys.exit(0)
     except AttributeError:
         log.exception("Fatal error in collecting sysdump")
         sys.exit(1)
-
-    sys.exit(0)

@@ -13,11 +13,62 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import asyncio
+import shlex
 import collections
 import logging
 import subprocess
 import sys
 import time
+
+
+class DummySemaphore:
+    def __init__(self, _):
+        pass
+
+    async def __aenter__(self):
+        await asyncio.sleep(0)  # no-op that's still awaited
+
+    async def __aexit__(self, exc_type, exc, tb):
+        await asyncio.sleep(0)
+
+
+semaphore = DummySemaphore(0)
+
+
+async def check_output(
+        command: str,
+        shell: bool = False,
+        stdin=None,
+        stdout=subprocess.PIPE,
+        stderr=None
+) -> bytes:
+    async with semaphore:
+        cmd, *arguments = shlex.split(command)
+        if shell:
+            process = await asyncio.create_subprocess_shell(
+                command,
+                stdin=stdin,
+                stdout=stdout,
+                stderr=stderr
+            )
+        else:
+            process = await asyncio.create_subprocess_exec(
+                cmd,
+                *arguments,
+                stdin=stdin,
+                stdout=stdout,
+                stderr=stderr
+            )
+        command_stdout, command_stderr = await process.communicate()
+        if process.returncode != 0:
+            raise subprocess.CalledProcessError(
+                process.returncode,
+                command,
+                command_stdout,
+                command_stderr
+            )
+        return command_stdout
 
 FORMAT = '%(levelname)s %(message)s'
 # TODO: Make the logging level configurable.
@@ -118,8 +169,11 @@ class PodStatus(PodStatus_):
     pass
 
 
-def get_pods_status_iterator_by_labels(label_selector, host_ip_filter,
-                                       must_exist=True):
+async def get_pods_status_iterator_by_labels(
+        label_selector,
+        host_ip_filter,
+        must_exist=True
+):
     """Returns an iterator to the status of pods selected with the
     label selector.
 
@@ -142,7 +196,7 @@ def get_pods_status_iterator_by_labels(label_selector, host_ip_filter,
            "{{@.spec.nodeName}}{{\" \"}}"
            "{{@.metadata.namespace}}{{\"\\n\"}}'").format(label_selector)
     try:
-        encoded_output = subprocess.check_output(
+        encoded_output = await check_output(
             cmd, shell=True, stderr=subprocess.STDOUT,
         )
     except subprocess.CalledProcessError as exc:
@@ -172,13 +226,14 @@ def get_pods_status_iterator_by_labels(label_selector, host_ip_filter,
     host_ip_filter_cmd = host_ip_filter_cmd.format(
         "|".join(map(str, host_ip_filter)))
     try:
-        filter_output = subprocess.check_output(
+        filter_output = await check_output(
             host_ip_filter_cmd, shell=True, stderr=subprocess.STDOUT,
         )
     except subprocess.CalledProcessError as exc:
         log.error("command to list filtered pods has "
                   "failed. error code: "
                   "{} {}".format(exc.returncode, exc.output))
+        return
     filter_output = filter_output.decode()
     if filter_output == "":
         if must_exist:
@@ -202,18 +257,18 @@ def get_pods_status_iterator_by_labels(label_selector, host_ip_filter,
                         namespace=split_line[4])
 
 
-def get_container_names_per_pod(pod_namespace, pod_name):
+async def get_container_names_per_pod(pod_namespace, pod_name):
     """Return the list of container names in the given pod"""
     cmd = "kubectl get pods {} -n {} " \
           "-o jsonpath='{}'".format(
               pod_name, pod_namespace, "{.spec.containers[*].name}",
           )
     try:
-        output = subprocess.check_output(
+        output = await check_output(
             cmd, shell=True, stderr=subprocess.STDOUT,
         )
     except subprocess.CalledProcessError:
-        pass
+        return []
     output = output.decode().strip()
     if not output:
         log.error("Error: Could not collect pod container name(s) for {}/{}"
