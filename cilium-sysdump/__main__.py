@@ -24,6 +24,7 @@ import os
 import time
 import distutils.util
 import asyncio
+import platform
 
 log = logging.getLogger(__name__)
 
@@ -131,8 +132,18 @@ if __name__ == "__main__":
             args.hubble_labels,
             args.concurrent_jobs,
         )
-        # asyncio.set_child_watcher(asyncio.unix_events.FastChildWatcher())
-        asyncio.run(sysdumpcollector.collect(args.nodes))
+        if platform.system() == "Windows":
+            # The default Windows event loop doesn't support watching
+            # subprocesses.
+            loop = asyncio.ProactorEventLoop()
+            asyncio.set_event_loop(loop)
+        else:
+            # By default, asyncio uses a threadpool to watch child processes.
+            # FastChildWatcher has some caveats that we can live with and uses
+            # no extra threads, reducing memory usage.
+            loop = asyncio.get_event_loop()
+            asyncio.set_child_watcher(asyncio.unix_events.FastChildWatcher())
+        loop.run_until_complete(sysdumpcollector.collect(args.nodes))
         sysdumpcollector.archive()
         sys.exit(0)
     except AttributeError:

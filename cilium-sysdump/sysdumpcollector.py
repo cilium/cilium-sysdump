@@ -97,11 +97,19 @@ class SysdumpCollector(object):
     async def collect_logs(self, label_selector, node_ip_filter):
 
         must_exist = not("hubble" in label_selector)  # hubble is optional
-        jobs = [
-            self.collect_logs_per_pod(pod) async for pod
-            in utils.get_pods_status_iterator_by_labels(
-                label_selector, node_ip_filter, must_exist=must_exist)
-        ]
+        # This could be a list comprehension, but would require Python 3.7+
+        # jobs = [
+        #     self.collect_logs_per_pod(pod) async for pod
+        #     in utils.get_pods_status_iterator_by_labels(
+        #         label_selector, node_ip_filter, must_exist=must_exist)
+        # ]
+        jobs = []
+        async for job in utils.get_pods_status_iterator_by_labels(
+                label_selector,
+                node_ip_filter,
+                must_exist=must_exist,
+        ):
+            jobs.append(job)
         await asyncio.gather(*jobs)
 
     async def collect_logs_per_pod(self, podstatus):
@@ -195,11 +203,13 @@ class SysdumpCollector(object):
 
     async def collect_gops(self, label_selector, node_ip_filter, type_of_stat):
         must_exist = not("hubble" in label_selector)  # hubble is optional
-        jobs = [
-            self.collect_gops_per_pod(pod, type_of_stat) async for pod
-            in utils.get_pods_status_iterator_by_labels(
-                label_selector, node_ip_filter, must_exist=must_exist,)
-        ]
+        jobs = []
+        async for job in utils.get_pods_status_iterator_by_labels(
+                label_selector,
+                node_ip_filter,
+                must_exist=must_exist,
+        ):
+            jobs.append(job)
         await asyncio.gather(*jobs)
 
     async def collect_gops_per_pod(self, podstatus, type_of_stat):
@@ -335,12 +345,13 @@ class SysdumpCollector(object):
 
     async def collect_cilium_bugtool_output(self, label_selector, node_ip_filter):  # noqa
         must_exist = not("hubble" in label_selector)  # hubble is optional
-        jobs = [
-            self.collect_cilium_bugtool_output_per_pod(pod) async for pod
-            in utils.get_pods_status_iterator_by_labels(label_selector,
-                                                        node_ip_filter,
-                                                        must_exist=must_exist)
-        ]
+        jobs = []
+        async for job in utils.get_pods_status_iterator_by_labels(
+                label_selector,
+                node_ip_filter,
+                must_exist=must_exist,
+        ):
+            jobs.append(job)
         await asyncio.gather(*jobs)
 
     async def collect_cilium_bugtool_output_per_pod(self, podstatus):
