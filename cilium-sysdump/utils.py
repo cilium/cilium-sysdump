@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import net
+
 import collections
 import logging
 import subprocess
@@ -119,7 +121,49 @@ class PodStatus(PodStatus_):
     pass
 
 
-def get_pods_status_iterator_by_labels(label_selector, host_ip_filter,
+def get_pods_filtered(custom_columns, filter, must_exist=True):
+    """Returns a list of pods filtered by the provided filter. The pod list is
+       retrieved by using custom columns.
+
+    Args:
+        custom_columns - the custom columns to fetch, e.g. pod name, node IP,
+                         etc. See
+                         https://kubernetes.io/docs/reference/kubectl/overview/#custom-columns.
+        filter - a list to filter the pods output by, e.g. node names / IPs.
+        must_exist - boolean to indicate that we should not get back empty
+                     output. If the condition isn't satisfied, an error will be
+                     logged.
+
+    Returns:
+        A list of strings representing `kubectl get pods` output.
+    """
+    cc_template = "-o=custom-columns={}"
+    cmd_template = "kubectl get pods --no-headers --all-namespaces {} | " \
+        "grep -E \"{}\" | awk '{{print $1}}'"
+
+    filter_cmd = cmd_template.format(
+        cc_template.format(custom_columns),  # Plugs into `-o=custom-columns=`
+        "|".join(map(str, filter))           # Plugs into `grep -E`
+    )
+    try:
+        filter_output = subprocess.check_output(
+            filter_cmd, shell=True, stderr=subprocess.STDOUT,
+        )
+    except subprocess.CalledProcessError as exc:
+        log.error("command to list filtered pods has "
+                  "failed. error code: "
+                  "{} {}".format(exc.returncode, exc.output))
+    filter_output = filter_output.decode()
+    if filter_output == "":
+        if must_exist:
+            log.error("No output because all the pods were filtered "
+                      "out by the node filter {}.".format(filter))
+        return []
+
+    return filter_output.splitlines()
+
+
+def get_pods_status_iterator_by_labels(label_selector, node_filter,
                                        must_exist=True):
     """Returns an iterator to the status of pods selected with the
     label selector.
@@ -159,35 +203,42 @@ def get_pods_status_iterator_by_labels(label_selector, host_ip_filter,
                         .format(label_selector))
         return
 
-    # kubectl field selector supports listing pods based on a particular
-    # field. However, it doesn't support hostIP field in 1.9.6. Also,
-    # it doesn't support set-based filtering. As a result, we will use
-    # grep based filtering for now. We might want to switch to this
-    # feature in the future. The following filter can be extended by
-    # modifying the following kubectl custom-columns and the associated
-    # grep command.
-    host_ip_filter_cmd = "kubectl get pods --no-headers " \
-        "-o=custom-columns=NAME:.metadata.name," \
-        "HOSTIP:.status.hostIP --all-namespaces | grep -E \"{}\" | " \
-        "awk '{{print $1}}'"
-    host_ip_filter_cmd = host_ip_filter_cmd.format(
-        "|".join(map(str, host_ip_filter)))
-    try:
-        filter_output = subprocess.check_output(
-            host_ip_filter_cmd, shell=True, stderr=subprocess.STDOUT,
+    # Separate out IPs and node names if the input from user is mixed.
+    ip_filter = [s for s in node_filter if net.is_ipaddress(s)]
+    name_filter = [s for s in node_filter if not net.is_ipaddress(s)]
+
+    # Retrieve pods based on filter provided by user. If the input is mixed
+    # (both IPs and node names), then we will aggregate all the output together
+    # in the end. If no filter is provided at all, we fall back to fetching
+    # everything.
+    filtered_pod_list = []
+    if ip_filter:
+        # kubectl field selector supports listing pods based on a particular
+        # field. However, it doesn't support hostIP field in 1.9.6. Also,
+        # it doesn't support set-based filtering. As a result, we will use
+        # grep based filtering for now. We might want to switch to this
+        # feature in the future. The following filter can be extended by
+        # modifying the following kubectl custom-columns and the associated
+        # grep command.
+        log.info("filtering on node IP address ...")
+        filtered_pod_list += get_pods_filtered(
+            "NAME:.metadata.name,HOSTIP:.status.hostIP",
+            ip_filter,
+            must_exist
         )
-    except subprocess.CalledProcessError as exc:
-        log.error("command to list filtered pods has "
-                  "failed. error code: "
-                  "{} {}".format(exc.returncode, exc.output))
-    filter_output = filter_output.decode()
-    if filter_output == "":
-        if must_exist:
-            log.error("No output because all the pods were filtered "
-                      "out by the node ip filter {}.".format(
-                        host_ip_filter))
-        return
-    filtered_pod_list = filter_output.splitlines()
+    if name_filter:
+        log.info("filtering on node name ...")
+        filtered_pod_list += get_pods_filtered(
+            "NAME:.metadata.name,NODE:.spec.nodeName",
+            name_filter,
+            must_exist
+        )
+    if not ip_filter and not name_filter:
+        filtered_pod_list += get_pods_filtered(
+            "NAME:.metadata.name",
+            [],
+            must_exist
+        )
 
     for line in output.splitlines():
         # Example line:
