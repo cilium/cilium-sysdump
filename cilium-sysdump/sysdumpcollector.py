@@ -103,7 +103,7 @@ class SysdumpCollector(object):
             log.info("collected pods summary: {}"
                      .format(pods_summary_file_name))
 
-    def collect_logs(self, pool, subject, label_selector, node_ip_filter):
+    def collect_logs(self, subject, pool, label_selector, node_filter):
         log.info("collecting {} logs ...".format(subject))
 
         must_exist = not("hubble" in label_selector)  # hubble is optional
@@ -111,7 +111,7 @@ class SysdumpCollector(object):
             self.collect_logs_per_pod,
             utils.get_pods_status_iterator_by_labels(
                 label_selector,
-                node_ip_filter,
+                node_filter,
                 must_exist=must_exist,
             ))
 
@@ -196,22 +196,21 @@ class SysdumpCollector(object):
                               "pod/container {}/{}".format(
                                   podstatus.name, container))
 
-    def collect_gops_stats(self, subject, pool, label_selector,
-                           node_ip_filter):
+    def collect_gops_stats(self, subject, pool, label_selector, node_filter):
         log.info("collecting {} gops stats ...".format(subject))
 
-        self.collect_gops(pool, label_selector, node_ip_filter, "stats")
-        self.collect_gops(pool, label_selector, node_ip_filter, "memstats")
-        self.collect_gops(pool, label_selector, node_ip_filter, "stack")
+        self.collect_gops(label_selector, node_filter, "stats")
+        self.collect_gops(label_selector, node_filter, "memstats")
+        self.collect_gops(label_selector, node_filter, "stack")
 
-    def collect_gops(self, pool, label_selector, node_ip_filter, type_of_stat):
+    def collect_gops(self, pool, label_selector, node_filter, type_of_stat):
         must_exist = not("hubble" in label_selector)  # hubble is optional
         pool.map_async(
             functools.partial(self.collect_gops_per_pod,
                               type_of_stat=type_of_stat),
             utils.get_pods_status_iterator_by_labels(
                 label_selector,
-                node_ip_filter,
+                node_filter,
                 must_exist=must_exist,
             ))
 
@@ -391,8 +390,7 @@ class SysdumpCollector(object):
             log.info("collected and redacted cilium secret file: {}".format(
                 secret_file_name))
 
-    def collect_cilium_bugtool_output(self, pool, label_selector,
-                                      node_ip_filter):
+    def collect_cilium_bugtool_output(self, pool, label_selector, node_filter):
         log.info("collecting cilium-bugtool output ...")
 
         must_exist = not("hubble" in label_selector)  # hubble is optional
@@ -400,7 +398,7 @@ class SysdumpCollector(object):
             self.collect_cilium_bugtool_output_per_pod,
             utils.get_pods_status_iterator_by_labels(
                 label_selector,
-                node_ip_filter,
+                node_filter,
                 must_exist=must_exist,
             ))
 
@@ -513,7 +511,7 @@ class SysdumpCollector(object):
             log.info("collected kubernetes events: {}"
                      .format(events_file_name))
 
-    def collect(self, node_ip_filter):
+    def collect(self, node_filter):
         pool = ThreadPool(min(32, multiprocessing.cpu_count() + 4))
 
         pool.apply_async(self.collect_k8s_version_info, ())
@@ -523,11 +521,11 @@ class SysdumpCollector(object):
         pool.apply_async(self.collect_pods_summary, ())
         pool.apply_async(self.collect_services_overview, ())
         self.collect_gops_stats("cilium", pool, self.cilium_labels,
-                                node_ip_filter)
+                                node_filter)
         self.collect_gops_stats("hubble", pool, self.hubble_labels,
-                                node_ip_filter)
+                                node_filter)
         self.collect_gops_stats("hubble relay", pool, self.hubble_relay_labels,
-                                node_ip_filter)
+                                node_filter)
         pool.apply_async(self.collect_netpol, ())
         pool.apply_async(self.collect_cnp, ())
         pool.apply_async(self.collect_cilium_secret, ())
@@ -545,13 +543,13 @@ class SysdumpCollector(object):
 
         # Time-consuming collect actions go here.
         self.collect_cilium_bugtool_output(pool, self.cilium_labels,
-                                           node_ip_filter)
-        self.collect_logs(pool, "cilium", self.cilium_labels, node_ip_filter)
+                                           node_filter)
+        self.collect_logs(pool, "cilium", self.cilium_labels, node_filter)
         self.collect_logs(pool, "cilium operator", "io.cilium/app=operator",
                           [])
-        self.collect_logs(pool, "hubble", self.hubble_labels, node_ip_filter)
+        self.collect_logs(pool, "hubble", self.hubble_labels, node_filter)
         self.collect_logs(pool, "hubble relay", self.hubble_relay_labels,
-                          node_ip_filter)
+                          node_filter)
 
         pool.close()
         pool.join()

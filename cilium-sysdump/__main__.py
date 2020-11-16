@@ -26,12 +26,13 @@ import os
 import time
 import distutils.util
 
+
 log = logging.getLogger(__name__)
 
 
 def parse_comma_sep_list(arg_string):
     item_list = arg_string.split(',')
-    item_list = [s.strip() for s in item_list if len(s)]
+    item_list = [s.strip() for s in item_list if s]
     return item_list
 
 
@@ -82,7 +83,7 @@ if __name__ == '__main__':
                         help='only return logs for particular '
                              'nodes specified by a comma '
                              'separated list of node IP '
-                             'addresses',
+                             'addresses or node names.',
                         default='')
     parser.add_argument('--since',
                         help='only return logs newer than a '
