@@ -5,16 +5,8 @@ The cilium-sysdump tool collects all information in a cluster required to troubl
 ## Prerequisites
 - Python >= 2.7
 - kubectl
-- pip (required only if you intend to rebuild the zip file)
 
 ## Using cilium-sysdump
-
-Optionally rebuild the zip file with:
-
-```sh
-$ pip install pycodestyle pyflakes
-$ make build
-```
 
 Make sure `kubectl` is pointing to your cluster and run `cilium-sysdump` with:
 
