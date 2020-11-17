@@ -44,54 +44,54 @@ if __name__ == "__main__":
     # The "sysdump" argument is left in here for backwards compatibility.
     parser.add_argument('sysdump', type=str, nargs='?', help=argparse.SUPPRESS)
     parser.add_argument('--cilium-ns', type=str, default=namespace.cilium_ns,
-                        help="specify the k8s namespace Cilium is running in")
+                        help='specify the k8s namespace Cilium is running in')
     parser.add_argument('--hubble-ns', type=str, default=namespace.hubble_ns,
-                        help="specify the k8s namespace Hubble is running in")
+                        help='specify the k8s namespace Hubble is running in')
     parser.add_argument('--hubble-relay-ns', type=str,
                         default=namespace.hubble_relay_ns,
-                        help="specify the k8s namespace Hubble-Relay is" +
-                             " running in")
+                        help='specify the k8s namespace Hubble-Relay is' +
+                             ' running in')
     parser.add_argument('--cilium-labels',
-                        help='Labels of cilium pods running in '
+                        help='labels of cilium pods running in '
                         'the cluster',
-                        default="k8s-app=cilium")
+                        default='k8s-app=cilium')
     parser.add_argument('--hubble-labels',
-                        help='Labels of hubble pods running in '
+                        help='labels of hubble pods running in '
                         'the cluster',
-                        default="k8s-app=hubble")
+                        default='k8s-app=hubble')
     parser.add_argument('--hubble-relay-labels',
-                        help='Labels of hubble-relay pods running in '
+                        help='labels of hubble-relay pods running in '
                         'the cluster',
-                        default="k8s-app=hubble-relay")
+                        default='k8s-app=hubble-relay')
     parser.add_argument('-v', '--version', required=False, action='store_true',
-                        help="get the version of this tool")
+                        help='get the version of this tool')
 
     parser.add_argument('--nodes',
                         type=parse_comma_sep_list,
-                        help='Only return logs for particular '
+                        help='only return logs for particular '
                              'nodes specified by a comma '
                              'separated list of node IP '
-                             'addresses.',
-                        default="")
+                             'addresses',
+                        default='')
     parser.add_argument('--since',
-                        help='Only return logs newer than a '
+                        help='only return logs newer than a '
                              'relative duration like 5s, 2m, or'
                              ' 3h. Defaults to 30m.',
                         default='30m')
     parser.add_argument('--size-limit', type=int,
                         help='size limit (bytes) for the '
                              'collected logs. '
-                             'Defaults to 1048576 (1MB).',
+                             'Defaults to 1048576 (1MB)',
                         default=1 * 1024 * 1024)
     parser.add_argument('--output',
-                        help='Output filename without '
+                        help='output filename without '
                              ' .zip extension')
     parser.add_argument('--quick', type=distutils.util.strtobool,
-                        default="false",
-                        help='Enable quick mode. Logs and '
+                        default='false',
+                        help='enable quick mode. Logs and '
                              'cilium bugtool output will'
-                             ' not be collected.'
-                             'Defaults to "false".')
+                             ' not be collected'
+                             ' Defaults to "false"')
 
     args = parser.parse_args()
 
