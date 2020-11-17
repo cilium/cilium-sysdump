@@ -223,5 +223,22 @@ def get_container_names_per_pod(pod_namespace, pod_name):
     return output.split(" ")
 
 
+def get_nodes():
+    """Return the list of nodes in the entire cluster"""
+    cmd = "kubectl get nodes " \
+          "-o jsonpath='{}'".format("{.items[*].metadata.name}")
+    try:
+        output = subprocess.check_output(
+            cmd, shell=True, stderr=subprocess.STDOUT,
+        )
+    except subprocess.CalledProcessError:
+        pass
+    output = output.decode().strip()
+    if not output:
+        log.error("Error: Could not collect nodes in the cluster")
+        return []
+    return output.split(" ")
+
+
 def get_current_time():
     return time.strftime("%Y%m%d-%H%M%S")
