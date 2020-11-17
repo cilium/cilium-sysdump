@@ -8,6 +8,12 @@ The cilium-sysdump tool collects all information in a cluster required to troubl
 
 ## Using cilium-sysdump
 
+Download the latest version of the `cilium-sysdump` tool:
+
+```sh
+$ curl -sLO https://github.com/cilium/cilium-sysdump/releases/latest/download/cilium-sysdump.zip
+```
+
 Make sure `kubectl` is pointing to your cluster and run `cilium-sysdump` with:
 
 ```sh
