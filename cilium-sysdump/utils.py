@@ -60,6 +60,7 @@ def get_resource_status(type, full_name="", label="", must_exist=True):
         type - Kubernetes resource type.
         full_name(optional) - the full name of the Kubernetes resource.
         label(optional) - the attached label of the resource.
+        must_exist(optional) - whether to resource must exist.
     Returns:
         An object of type ResourceStatus.
     Exceptions:
