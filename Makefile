@@ -15,12 +15,10 @@
 .PHONY: build version
 
 check: check-tools
-	pycodestyle --exclude=venv,.git,__pycache__ $(CURDIR)
-	pyflakes $(CURDIR)/cilium-sysdump
+	flake8 $(CURDIR)/cilium-sysdump
 
 check-tools:
-	command -v pycodestyle >/dev/null 2>&1 || { echo "Package pycodestyle not installed. Aborting." >&2; exit 1; }
-	command -v pyflakes >/dev/null 2>&1 || { echo "Package pyflakes not installed. Aborting." >&2; exit 1; }
+	command -v flake8 >/dev/null 2>&1 || { echo "Package flake8 not installed. Aborting." >&2; exit 1; }
 
 version:
 	echo "__version__ = \"$(shell cat VERSION)-$(shell git log --pretty=format:'%h' -n 1 2>/dev/null || echo "unknown")\"" > cilium-sysdump/_version.py
