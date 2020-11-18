@@ -23,5 +23,5 @@ cilium_labels = 'k8s-app=cilium'
 hubble_labels = 'k8s-app=hubble'
 hubble_relay_labels = 'k8s-app=hubble-relay'
 since = '0'
-size_limit = 1 * 1024 * 1024
+size_limit = 1 * 1024 * 1024 * 1024
 quick = 'false'

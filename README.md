@@ -28,6 +28,7 @@ the time required for this operation, it is advised to:
 
 * set the `--since` option to go back in time to when the issues started
 * set the `--nodes` option to pick only a few nodes in case the cluster has many of them
+* set the `--size-limit` option to limit the size of the log files
 
 The command with the aforementioned options set would look like:
 
@@ -48,4 +49,4 @@ The following options are supported:
 - `--output OUTPUT`: output filename without .zip extension
 - `--quick QUICK`: enable quick mode. Logs and cilium bugtool output will to "false"
 - `--since SINCE`: only return logs newer than a relative duration like 5s, 2m, or 3h. Defaults to 0
-- `--size-limit SIZE_LIMIT`: size limit (bytes) for the collected logs. Defaults to 1048576 (1MB)
+- `--size-limit SIZE_LIMIT`: size limit (bytes) for the collected logs. Defaults to 1073741824 (1GB)
