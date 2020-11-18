@@ -33,9 +33,9 @@ def parse_comma_sep_list(arg_string):
     return item_list
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     if sys.version_info < (2, 7, 0):
-        sys.stderr.write("You need python 2.7+ to run this script\n")
+        sys.stderr.write('You need python 2.7+ to run this script\n')
         sys.exit(1)
 
     parser = argparse.ArgumentParser(description='Cluster diagnosis '
@@ -103,7 +103,7 @@ if __name__ == "__main__":
     # daemonset's namespaces respectively
     # Fall back to the specified namespace in the input argument if it fails.
     try:
-        status = utils.get_resource_status("pod", label=args.cilium_labels)
+        status = utils.get_resource_status('pod', label=args.cilium_labels)
         namespace.cilium_ns = status[0]
     except RuntimeError:
         namespace.cilium_ns = args.cilium_ns
@@ -111,7 +111,7 @@ if __name__ == "__main__":
 
     try:
         status = utils.get_resource_status(
-            "pod", label=args.hubble_labels, must_exist=False,
+            'pod', label=args.hubble_labels, must_exist=False,
         )
         if status is None:
             namespace.hubble_ns = args.hubble_ns
@@ -123,7 +123,7 @@ if __name__ == "__main__":
 
     try:
         status = utils.get_resource_status(
-            "pod", label=args.hubble_relay_labels, must_exist=False,
+            'pod', label=args.hubble_relay_labels, must_exist=False,
         )
         if status is None:
             namespace.hubble_relay_labels = args.hubble_relay_labels
@@ -134,8 +134,8 @@ if __name__ == "__main__":
         pass
 
     try:
-        sysdump_dir_name = "./cilium-sysdump-{}"\
-            .format(time.strftime("%Y%m%d-%H%M%S"))
+        sysdump_dir_name = './cilium-sysdump-{}'\
+            .format(time.strftime('%Y%m%d-%H%M%S'))
         if not os.path.exists(sysdump_dir_name):
             os.makedirs(sysdump_dir_name)
         sysdumpcollector = sysdumpcollector.SysdumpCollector(
@@ -151,7 +151,7 @@ if __name__ == "__main__":
         sysdumpcollector.archive()
         sys.exit(0)
     except AttributeError:
-        log.exception("Fatal error in collecting sysdump")
+        log.exception('Fatal error in collecting sysdump')
         sys.exit(1)
 
     sys.exit(0)
