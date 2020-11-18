@@ -35,6 +35,15 @@ def parse_comma_sep_list(arg_string):
     return item_list
 
 
+def prompt(msg):
+    if sys.version_info > (2, 7, 0) and sys.version_info < (3, 0, 0):
+        # The following line is ignored from static analysis because it will
+        # fail to compile on Python 3.x.
+        return raw_input(msg)  # noqa
+    else:
+        return input(msg)
+
+
 if __name__ == '__main__':
     if sys.version_info < (2, 7, 0):
         sys.stderr.write('You need python 2.7+ to run this script\n')
@@ -134,6 +143,29 @@ if __name__ == '__main__':
     except RuntimeError:
         namespace.hubble_relay_ns = args.hubble_relay_ns
         pass
+
+    log.debug('Fetching nodes to determine cluster size...')
+    nodes = utils.get_nodes()
+    if not nodes:
+        log.error('No nodes found')
+    if len(nodes) > 20 and (not args.nodes and
+                            args.since == defaults.since and
+                            args.size_limit == defaults.size_limit):
+        log.warning((
+            'Detected a large cluster (> 20) with {} nodes. Consider '
+            'setting one or more of the following to decrease the size '
+            'of the sysdump as many nodes will slow down the collection '
+            'and increase the size of the resulting '
+            'archive:\n'
+        ).format(len(nodes)) +
+            '  --nodes       (Nodes to collect from)          \n'
+            '  --since       (How far back in time to collect)\n'
+            '  --size-limit  (Size limit of Cilium logs)      \n'
+        )
+
+        choice = prompt('Continue [y/N] (default is N)? ').strip().lower()
+        if not choice or choice == 'n':
+            sys.exit(0)
 
     try:
         sysdump_dir_name = './cilium-sysdump-{}'\
