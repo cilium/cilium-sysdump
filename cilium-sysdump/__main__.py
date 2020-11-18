@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import defaults
+
 from _version import __version__
 import utils
 import namespace
@@ -43,26 +45,26 @@ if __name__ == '__main__':
 
     # The "sysdump" argument is left in here for backwards compatibility.
     parser.add_argument('sysdump', type=str, nargs='?', help=argparse.SUPPRESS)
-    parser.add_argument('--cilium-ns', type=str, default=namespace.cilium_ns,
+    parser.add_argument('--cilium-ns', type=str, default=defaults.cilium_ns,
                         help='specify the k8s namespace Cilium is running in')
-    parser.add_argument('--hubble-ns', type=str, default=namespace.hubble_ns,
+    parser.add_argument('--hubble-ns', type=str, default=defaults.hubble_ns,
                         help='specify the k8s namespace Hubble is running in')
     parser.add_argument('--hubble-relay-ns', type=str,
-                        default=namespace.hubble_relay_ns,
+                        default=defaults.hubble_relay_ns,
                         help='specify the k8s namespace Hubble-Relay is' +
                              ' running in')
     parser.add_argument('--cilium-labels',
                         help='labels of cilium pods running in '
                         'the cluster',
-                        default='k8s-app=cilium')
+                        default=defaults.cilium_labels)
     parser.add_argument('--hubble-labels',
                         help='labels of hubble pods running in '
                         'the cluster',
-                        default='k8s-app=hubble')
+                        default=defaults.hubble_labels)
     parser.add_argument('--hubble-relay-labels',
                         help='labels of hubble-relay pods running in '
                         'the cluster',
-                        default='k8s-app=hubble-relay')
+                        default=defaults.hubble_relay_labels)
     parser.add_argument('-v', '--version', required=False, action='store_true',
                         help='get the version of this tool')
 
@@ -76,18 +78,18 @@ if __name__ == '__main__':
     parser.add_argument('--since',
                         help='only return logs newer than a '
                              'relative duration like 5s, 2m, or'
-                             ' 3h. Defaults to 30m.',
-                        default='30m')
+                             ' 3h. Defaults to 0.',
+                        default=defaults.since)
     parser.add_argument('--size-limit', type=int,
                         help='size limit (bytes) for the '
                              'collected logs. '
-                             'Defaults to 1048576 (1MB)',
-                        default=1 * 1024 * 1024)
+                             'Defaults to 1073741824 (1GB)',
+                        default=defaults.size_limit)
     parser.add_argument('--output',
                         help='output filename without '
                              ' .zip extension')
     parser.add_argument('--quick', type=distutils.util.strtobool,
-                        default='false',
+                        default=defaults.quick,
                         help='enable quick mode. Logs and '
                              'cilium bugtool output will'
                              ' not be collected'
