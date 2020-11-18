@@ -20,8 +20,8 @@ Make sure `kubectl` is pointing to your cluster and run `cilium-sysdump` with:
 $ python cilium-sysdump.zip
 ```
 
-Note that by default `cilium-sysdump` will collect logs for the past 30 minutes
-and for all the nodes in the cluster.
+Note that by default `cilium-sysdump` will collect all the logs and for all the
+nodes in the cluster.
 
 To make sure the tool collects as much relevant logs as possible, and to reduce
 the time required for this operation, it is advised to:
@@ -47,5 +47,5 @@ The following options are supported:
 - `--nodes NODES`: only return logs for particular nodes specified by a comma separated list of node IP addresses
 - `--output OUTPUT`: output filename without .zip extension
 - `--quick QUICK`: enable quick mode. Logs and cilium bugtool output will to "false"
-- `--since SINCE`: only return logs newer than a relative duration like 5s, 2m, or 3h. Defaults to 30m
+- `--since SINCE`: only return logs newer than a relative duration like 5s, 2m, or 3h. Defaults to 0
 - `--size-limit SIZE_LIMIT`: size limit (bytes) for the collected logs. Defaults to 1048576 (1MB)
