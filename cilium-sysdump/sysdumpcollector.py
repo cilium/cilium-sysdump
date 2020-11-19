@@ -53,6 +53,8 @@ class SysdumpCollector(object):
         self.hubble_relay_labels = hubble_relay_labels
 
     def collect_nodes_overview(self):
+        log.info("collecting nodes overview ...")
+
         nodes_overview_file_name = "nodes-{}.json".format(
             utils.get_current_time())
         cmd = "kubectl get nodes -o json > {}/{}".format(
@@ -68,6 +70,8 @@ class SysdumpCollector(object):
                      .format(nodes_overview_file_name))
 
     def collect_pods_overview(self):
+        log.info("collecting pods overview ...")
+
         pods_overview_file_name = "pods-{}.json".format(
             utils.get_current_time())
         cmd = "kubectl get pods -o json --all-namespaces > {}/{}".format(
@@ -83,6 +87,8 @@ class SysdumpCollector(object):
                      .format(pods_overview_file_name))
 
     def collect_pods_summary(self):
+        log.info("collecting pods summary ...")
+
         pods_summary_file_name = "pods-{}.txt".format(
             utils.get_current_time())
         cmd = "kubectl get pods --all-namespaces -o wide > {}/{}".format(
@@ -97,19 +103,17 @@ class SysdumpCollector(object):
             log.info("collected pods summary: {}"
                      .format(pods_summary_file_name))
 
-    def collect_logs(self, label_selector, node_ip_filter):
-        pool = ThreadPool(min(32, multiprocessing.cpu_count() + 4))
+    def collect_logs(self, pool, subject, label_selector, node_ip_filter):
+        log.info("collecting {} logs ...".format(subject))
 
         must_exist = not("hubble" in label_selector)  # hubble is optional
-        pool.map(
+        pool.map_async(
             self.collect_logs_per_pod,
             utils.get_pods_status_iterator_by_labels(
                 label_selector,
                 node_ip_filter,
                 must_exist=must_exist,
             ))
-        pool.close()
-        pool.join()
 
     def collect_logs_per_pod(self, podstatus):
         containers = utils.get_container_names_per_pod(podstatus.namespace,
@@ -192,15 +196,17 @@ class SysdumpCollector(object):
                               "pod/container {}/{}".format(
                                   podstatus.name, container))
 
-    def collect_gops_stats(self, label_selector, node_ip_filter):
-        self.collect_gops(label_selector, node_ip_filter, "stats")
-        self.collect_gops(label_selector, node_ip_filter, "memstats")
-        self.collect_gops(label_selector, node_ip_filter, "stack")
+    def collect_gops_stats(self, subject, pool, label_selector,
+                           node_ip_filter):
+        log.info("collecting {} gops stats ...".format(subject))
 
-    def collect_gops(self, label_selector, node_ip_filter, type_of_stat):
-        pool = ThreadPool(min(32, multiprocessing.cpu_count() + 4))
+        self.collect_gops(pool, label_selector, node_ip_filter, "stats")
+        self.collect_gops(pool, label_selector, node_ip_filter, "memstats")
+        self.collect_gops(pool, label_selector, node_ip_filter, "stack")
+
+    def collect_gops(self, pool, label_selector, node_ip_filter, type_of_stat):
         must_exist = not("hubble" in label_selector)  # hubble is optional
-        pool.map(
+        pool.map_async(
             functools.partial(self.collect_gops_per_pod,
                               type_of_stat=type_of_stat),
             utils.get_pods_status_iterator_by_labels(
@@ -208,8 +214,6 @@ class SysdumpCollector(object):
                 node_ip_filter,
                 must_exist=must_exist,
             ))
-        pool.close()
-        pool.join()
 
     def collect_gops_per_pod(self, podstatus, type_of_stat):
         containers = utils.get_container_names_per_pod(podstatus.namespace,
@@ -240,6 +244,8 @@ class SysdumpCollector(object):
                     type_of_stat, file_name))
 
     def collect_netpol(self):
+        log.info("collecting kubernetes network policy ...")
+
         netpol_file_name = "netpol-{}.yaml".format(utils.get_current_time())
         cmd = "kubectl get netpol -o yaml --all-namespaces > {}/{}".format(
               self.sysdump_dir_name, netpol_file_name)
@@ -254,6 +260,8 @@ class SysdumpCollector(object):
                      .format(netpol_file_name))
 
     def collect_cnp(self):
+        log.info("collecting cilium network policy ...")
+
         cnp_file_name = "cnp-{}.yaml".format(utils.get_current_time())
         cmd = "kubectl get cnp -o yaml --all-namespaces > {}/{}".format(
               self.sysdump_dir_name, cnp_file_name)
@@ -268,6 +276,8 @@ class SysdumpCollector(object):
                      .format(cnp_file_name))
 
     def collect_cep(self):
+        log.info("collecting cilium endpoints ...")
+
         cep_file_name = "cep-{}.yaml".format(utils.get_current_time())
         cmd = "kubectl get cep -o yaml --all-namespaces > {}/{}".format(
             self.sysdump_dir_name, cep_file_name)
@@ -281,6 +291,8 @@ class SysdumpCollector(object):
             log.info("collected cilium endpoints: {}".format(cep_file_name))
 
     def collect_ciliumids(self):
+        log.info("collecting cilium identities ...")
+
         ciliumids_file_name = "ciliumidentities-{}.yaml".format(
             utils.get_current_time())
         cmd = ("kubectl get ciliumidentities -o yaml --all-namespaces > {}/{}"
@@ -296,6 +308,8 @@ class SysdumpCollector(object):
                 ciliumids_file_name))
 
     def collect_ciliumnodes(self):
+        log.info("collecting cilium nodes ...")
+
         ciliumnodes_file_name = "ciliumnodes-{}.yaml".format(
             utils.get_current_time())
         cmd = ("kubectl get ciliumnodes -o yaml --all-namespaces > {}/{}"
@@ -310,7 +324,9 @@ class SysdumpCollector(object):
             log.info("collected cilium nodes: {}".format(
                 ciliumnodes_file_name))
 
-    def collect_daemonset_yaml(self, name="cilium"):
+    def collect_daemonset_yaml(self, name):
+        log.info("collecting {} daemonset yaml ...".format(name))
+
         ns = namespace.cilium_ns
         if name == "hubble":
             ns = namespace.hubble_ns
@@ -330,6 +346,8 @@ class SysdumpCollector(object):
                 name, file_name))
 
     def collect_cilium_configmap(self):
+        log.info("collecting cilium configmap yaml ...")
+
         configmap_file_name = "cilium-configmap-{}.yaml".format(
             utils.get_current_time())
         cmd = "kubectl get configmap cilium-config -n {} -oyaml " \
@@ -346,6 +364,8 @@ class SysdumpCollector(object):
                 configmap_file_name))
 
     def collect_cilium_secret(self):
+        log.info("collecting cilium etcd secret ...")
+
         secret_file_name = "cilium-etcd-secrets-{}.json".format(
             utils.get_current_time())
         cmd = "kubectl get secret cilium-etcd-secrets -n {} -o json".format(
@@ -371,18 +391,18 @@ class SysdumpCollector(object):
             log.info("collected and redacted cilium secret file: {}".format(
                 secret_file_name))
 
-    def collect_cilium_bugtool_output(self, label_selector, node_ip_filter):
-        pool = ThreadPool(min(32, multiprocessing.cpu_count() + 4))
+    def collect_cilium_bugtool_output(self, pool, label_selector,
+                                      node_ip_filter):
+        log.info("collecting cilium-bugtool output ...")
+
         must_exist = not("hubble" in label_selector)  # hubble is optional
-        pool.map(
+        pool.map_async(
             self.collect_cilium_bugtool_output_per_pod,
             utils.get_pods_status_iterator_by_labels(
                 label_selector,
                 node_ip_filter,
                 must_exist=must_exist,
             ))
-        pool.close()
-        pool.join()
 
     def collect_cilium_bugtool_output_per_pod(self, podstatus):
         bugtool_output_dir = "bugtool-{}-{}".format(
@@ -447,6 +467,8 @@ class SysdumpCollector(object):
                     bugtool_output_file_name))
 
     def collect_services_overview(self):
+        log.info("collecting services overview ...")
+
         svc_file_name = "services-{}.yaml".format(
             utils.get_current_time())
         cmd = "kubectl get svc --all-namespaces -oyaml " \
@@ -460,6 +482,8 @@ class SysdumpCollector(object):
             log.info("collected svc overview: {}".format(svc_file_name))
 
     def collect_k8s_version_info(self):
+        log.info("collecting kubernetes version info ...")
+
         version_file_name = "k8s-version-info-{}.txt".format(
             utils.get_current_time())
         cmd = "kubectl version > {}/{}".format(self.sysdump_dir_name,
@@ -474,6 +498,8 @@ class SysdumpCollector(object):
                      .format(version_file_name))
 
     def collect_k8s_events(self):
+        log.info("collecting Kubernetes events JSON ...")
+
         events_file_name = "k8s-events-{}.json".format(
             utils.get_current_time())
         cmd = "kubectl get events --all-namespaces -o json > {}/{}".format(
@@ -488,53 +514,47 @@ class SysdumpCollector(object):
                      .format(events_file_name))
 
     def collect(self, node_ip_filter):
-        log.info("collecting kubernetes version info ...")
-        self.collect_k8s_version_info()
-        log.info("collecting Kubernetes events JSON ...")
-        self.collect_k8s_events()
-        log.info("collecting nodes overview ...")
-        self.collect_nodes_overview()
-        log.info("collecting pods overview ...")
-        self.collect_pods_overview()
-        log.info("collecting pods summary ...")
-        self.collect_pods_summary()
-        log.info("collecting services overview ...")
-        self.collect_services_overview()
-        log.info("collecting cilium gops stats ...")
-        self.collect_gops_stats(self.cilium_labels, node_ip_filter)
-        log.info("collecting hubble gops stats ...")
-        self.collect_gops_stats(self.hubble_labels, node_ip_filter)
-        log.info("collecting hubble-relay gops stats ...")
-        self.collect_gops_stats(self.hubble_relay_labels, node_ip_filter)
-        log.info("collecting kubernetes network policy ...")
-        self.collect_netpol()
-        log.info("collecting cilium network policy ...")
-        self.collect_cnp()
-        log.info("collecting cilium etcd secret ...")
-        self.collect_cilium_secret()
-        log.info("collecting cilium endpoints ...")
-        self.collect_cep()
-        log.info("collecting cilium identities ...")
-        self.collect_ciliumids()
-        log.info("collecting cilium nodes ...")
-        self.collect_ciliumnodes()
-        log.info("collecting cilium daemonset yaml ...")
-        self.collect_daemonset_yaml(name="cilium")
-        log.info("collecting hubble daemonset yaml ...")
-        self.collect_daemonset_yaml(name="hubble")
-        log.info("collecting cilium configmap yaml ...")
-        self.collect_cilium_configmap()
+        pool = ThreadPool(min(32, multiprocessing.cpu_count() + 4))
+
+        pool.apply_async(self.collect_k8s_version_info, ())
+        pool.apply_async(self.collect_k8s_events, ())
+        pool.apply_async(self.collect_nodes_overview, ())
+        pool.apply_async(self.collect_pods_overview, ())
+        pool.apply_async(self.collect_pods_summary, ())
+        pool.apply_async(self.collect_services_overview, ())
+        self.collect_gops_stats("cilium", pool, self.cilium_labels,
+                                node_ip_filter)
+        self.collect_gops_stats("hubble", pool, self.hubble_labels,
+                                node_ip_filter)
+        self.collect_gops_stats("hubble relay", pool, self.hubble_relay_labels,
+                                node_ip_filter)
+        pool.apply_async(self.collect_netpol, ())
+        pool.apply_async(self.collect_cnp, ())
+        pool.apply_async(self.collect_cilium_secret, ())
+        pool.apply_async(self.collect_cep, ())
+        pool.apply_async(self.collect_ciliumids, ())
+        pool.apply_async(self.collect_ciliumnodes, ())
+        pool.apply_async(self.collect_daemonset_yaml, ("cilium", ))
+        pool.apply_async(self.collect_daemonset_yaml, ("hubble", ))
+        pool.apply_async(self.collect_cilium_configmap, ())
+
         if self.is_quick_mode:
+            pool.close()
+            pool.join()
             return
+
         # Time-consuming collect actions go here.
-        log.info("collecting cilium-bugtool output ...")
-        self.collect_cilium_bugtool_output(self.cilium_labels, node_ip_filter)
-        log.info("collecting cilium logs ...")
-        self.collect_logs(self.cilium_labels, node_ip_filter)
-        self.collect_logs("io.cilium/app=operator", [])
-        log.info("collecting hubble logs ...")
-        self.collect_logs(self.hubble_labels, node_ip_filter)
-        self.collect_logs(self.hubble_relay_labels, node_ip_filter)
+        self.collect_cilium_bugtool_output(pool, self.cilium_labels,
+                                           node_ip_filter)
+        self.collect_logs(pool, "cilium", self.cilium_labels, node_ip_filter)
+        self.collect_logs(pool, "cilium operator", "io.cilium/app=operator",
+                          [])
+        self.collect_logs(pool, "hubble", self.hubble_labels, node_ip_filter)
+        self.collect_logs(pool, "hubble relay", self.hubble_relay_labels,
+                          node_ip_filter)
+
+        pool.close()
+        pool.join()
 
     def archive(self):
         filename = self.output or self.sysdump_dir_name
