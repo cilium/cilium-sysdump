@@ -103,7 +103,7 @@ class SysdumpCollector(object):
             log.info("collected pods summary: {}"
                      .format(pods_summary_file_name))
 
-    def collect_logs(self, subject, pool, label_selector, node_filter):
+    def collect_logs(self, pool, subject, label_selector, node_filter):
         log.info("collecting {} logs ...".format(subject))
 
         must_exist = not("hubble" in label_selector)  # hubble is optional
@@ -196,12 +196,12 @@ class SysdumpCollector(object):
                               "pod/container {}/{}".format(
                                   podstatus.name, container))
 
-    def collect_gops_stats(self, subject, pool, label_selector, node_filter):
+    def collect_gops_stats(self, pool, subject, label_selector, node_filter):
         log.info("collecting {} gops stats ...".format(subject))
 
-        self.collect_gops(label_selector, node_filter, "stats")
-        self.collect_gops(label_selector, node_filter, "memstats")
-        self.collect_gops(label_selector, node_filter, "stack")
+        self.collect_gops(pool, label_selector, node_filter, "stats")
+        self.collect_gops(pool, label_selector, node_filter, "memstats")
+        self.collect_gops(pool, label_selector, node_filter, "stack")
 
     def collect_gops(self, pool, label_selector, node_filter, type_of_stat):
         must_exist = not("hubble" in label_selector)  # hubble is optional
@@ -520,11 +520,11 @@ class SysdumpCollector(object):
         pool.apply_async(self.collect_pods_overview, ())
         pool.apply_async(self.collect_pods_summary, ())
         pool.apply_async(self.collect_services_overview, ())
-        self.collect_gops_stats("cilium", pool, self.cilium_labels,
+        self.collect_gops_stats(pool, "cilium", self.cilium_labels,
                                 node_filter)
-        self.collect_gops_stats("hubble", pool, self.hubble_labels,
+        self.collect_gops_stats(pool, "hubble", self.hubble_labels,
                                 node_filter)
-        self.collect_gops_stats("hubble relay", pool, self.hubble_relay_labels,
+        self.collect_gops_stats(pool, "hubble relay", self.hubble_relay_labels,
                                 node_filter)
         pool.apply_async(self.collect_netpol, ())
         pool.apply_async(self.collect_cnp, ())
