@@ -258,8 +258,10 @@ def get_container_names_per_pod(pod_namespace, pod_name):
     """Return the list of container names in the given pod"""
     cmd = "kubectl get pods {} -n {} " \
           "-o jsonpath='{}'".format(
-              pod_name, pod_namespace, "{.spec.containers[*].name}",
+              pod_name, pod_namespace, "{.spec.containers[*].name}"
           )
+
+    output = ""
     try:
         output = subprocess.check_output(
             cmd, shell=True, stderr=subprocess.STDOUT,
@@ -278,6 +280,8 @@ def get_nodes():
     """Return the list of nodes in the entire cluster"""
     cmd = "kubectl get nodes " \
           "-o jsonpath='{}'".format("{.items[*].metadata.name}")
+
+    output = ""
     try:
         output = subprocess.check_output(
             cmd, shell=True, stderr=subprocess.STDOUT,
