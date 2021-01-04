@@ -406,7 +406,7 @@ class SysdumpCollector(object):
         bugtool_output_dir = "bugtool-{}-{}".format(
             podstatus.name, utils.get_current_time())
         bugtool_output_file_name = "{}.tar".format(bugtool_output_dir)
-        cmd = "kubectl exec -n {} {} cilium-bugtool".format(
+        cmd = "kubectl exec -n {} {} -c cilium-agent cilium-bugtool".format(
             podstatus.namespace, podstatus.name)
         try:
             encoded_output = subprocess.check_output(
