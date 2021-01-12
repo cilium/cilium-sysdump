@@ -274,6 +274,22 @@ class SysdumpCollector(object):
             log.info("collected cilium network policy: {}"
                      .format(cnp_file_name))
 
+    def collect_ccnp(self):
+        log.info("collecting cilium clusterwide network policy ...")
+
+        ccnp_file_name = "ccnp-{}.yaml".format(utils.get_current_time())
+        cmd = "kubectl get ccnp -o yaml --all-namespaces > {}/{}".format(
+              self.sysdump_dir_name, ccnp_file_name)
+        try:
+            subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as exc:
+            if exc.returncode != 0:
+                log.warning("Warning: {}. Could not collect cilium clusterwide"
+                            " network policy: {}".format(exc, ccnp_file_name))
+        else:
+            log.info("collected cilium clusterwide network policy: {}"
+                     .format(ccnp_file_name))
+
     def collect_cep(self):
         log.info("collecting cilium endpoints ...")
 
@@ -511,11 +527,28 @@ class SysdumpCollector(object):
             log.info("collected kubernetes events: {}"
                      .format(events_file_name))
 
+    def collect_k8s_namespaces(self):
+        log.info("collecting Kubernetes namespaces yaml ...")
+
+        namespaces_file_name = "k8s-namespaces-{}.yaml".format(
+            utils.get_current_time())
+        cmd = "kubectl get ns -o yaml > {}/{}".format(
+            self.sysdump_dir_name, namespaces_file_name)
+        try:
+            subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as exc:
+            if exc.returncode != 0:
+                log.error("Error: {}. Unable to get kubernetes namespaces.")
+        else:
+            log.info("collected kubernetes namespaces: {}"
+                     .format(namespaces_file_name))
+
     def collect(self, node_filter):
         pool = ThreadPool(min(32, multiprocessing.cpu_count() + 4))
 
         pool.apply_async(self.collect_k8s_version_info, ())
         pool.apply_async(self.collect_k8s_events, ())
+        pool.apply_async(self.collect_k8s_namespaces, ())
         pool.apply_async(self.collect_nodes_overview, ())
         pool.apply_async(self.collect_pods_overview, ())
         pool.apply_async(self.collect_pods_summary, ())
@@ -528,6 +561,7 @@ class SysdumpCollector(object):
                                 node_filter)
         pool.apply_async(self.collect_netpol, ())
         pool.apply_async(self.collect_cnp, ())
+        pool.apply_async(self.collect_ccnp, ())
         pool.apply_async(self.collect_cilium_secret, ())
         pool.apply_async(self.collect_cep, ())
         pool.apply_async(self.collect_ciliumids, ())
