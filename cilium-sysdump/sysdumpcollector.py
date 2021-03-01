@@ -339,6 +339,24 @@ class SysdumpCollector(object):
             log.info("collected cilium nodes: {}".format(
                 ciliumnodes_file_name))
 
+    def collect_deployment_yaml(self, name):
+        log.info("collecting {} deployment yaml ...".format(name))
+
+        ns = namespace.cilium_ns
+        fname = "{}-deployment-{}.yaml".format(name, utils.get_current_time())
+        cmd = "kubectl get deployment {} -n {} -oyaml > {}/{}".format(
+            name, ns, self.sysdump_dir_name, fname)
+        try:
+            subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as exc:
+            if exc.returncode != 0:
+                log.warning("{}. Unable to get {} deployment yaml".format(
+                    exc, name,
+                ))
+        else:
+            log.info("collected {} deployment yaml file: {}".format(
+                name, fname))
+
     def collect_daemonset_yaml(self, name):
         log.info("collecting {} daemonset yaml ...".format(name))
 
@@ -568,6 +586,7 @@ class SysdumpCollector(object):
         pool.apply_async(self.collect_ciliumnodes, ())
         pool.apply_async(self.collect_daemonset_yaml, ("cilium", ))
         pool.apply_async(self.collect_daemonset_yaml, ("hubble", ))
+        pool.apply_async(self.collect_deployment_yaml, ("cilium-operator", ))
         pool.apply_async(self.collect_cilium_configmap, ())
 
         if self.is_quick_mode:
