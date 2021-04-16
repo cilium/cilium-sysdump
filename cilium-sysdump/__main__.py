@@ -62,6 +62,10 @@ if __name__ == '__main__':
                         default=defaults.hubble_relay_ns,
                         help='specify the k8s namespace Hubble-Relay is' +
                              ' running in')
+    parser.add_argument('--hubble-ui-ns', type=str,
+                        default=defaults.hubble_ui_ns,
+                        help='specify the k8s namespace Hubble-UI is' +
+                             ' running in')
     parser.add_argument('--cilium-labels',
                         help='labels of cilium pods running in '
                         'the cluster',
@@ -74,6 +78,10 @@ if __name__ == '__main__':
                         help='labels of hubble-relay pods running in '
                         'the cluster',
                         default=defaults.hubble_relay_labels)
+    parser.add_argument('--hubble-ui-labels',
+                        help='labels of hubble-ui pods running in '
+                        'the cluster',
+                        default=defaults.hubble_ui_labels)
     parser.add_argument('-v', '--version', required=False, action='store_true',
                         help='get the version of this tool')
 
@@ -144,6 +152,18 @@ if __name__ == '__main__':
         namespace.hubble_relay_ns = args.hubble_relay_ns
         pass
 
+    try:
+        status = utils.get_resource_status(
+            'pod', label=args.hubble_ui_labels, must_exist=False,
+        )
+        if status is None:
+            namespace.hubble_ui_ns = args.hubble_ui_ns
+        else:
+            namespace.hubble_ui_ns = status[0]
+    except RuntimeError:
+        namespace.hubble_ui_ns = args.hubble_ui_ns
+        pass
+
     log.debug('Fetching nodes to determine cluster size...')
     nodes = utils.get_nodes()
     if not nodes:
@@ -180,7 +200,8 @@ if __name__ == '__main__':
             args.quick,
             args.cilium_labels,
             args.hubble_labels,
-            args.hubble_relay_labels)
+            args.hubble_relay_labels,
+            args.hubble_ui_labels)
         sysdumpcollector.collect(args.nodes)
         sysdumpcollector.archive()
         sys.exit(0)

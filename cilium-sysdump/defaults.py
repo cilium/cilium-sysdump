@@ -15,13 +15,14 @@
 
 import namespace
 
-
 cilium_ns = namespace.cilium_ns
 hubble_ns = namespace.hubble_ns
 hubble_relay_ns = namespace.hubble_relay_ns
+hubble_ui_ns = namespace.hubble_ui_ns
 cilium_labels = 'k8s-app=cilium'
 hubble_labels = 'k8s-app=hubble'
 hubble_relay_labels = 'k8s-app=hubble-relay'
+hubble_ui_labels = 'k8s-app=hubble-ui'
 since = '0'
 size_limit = 1 * 1024 * 1024 * 1024
 quick = 'false'
