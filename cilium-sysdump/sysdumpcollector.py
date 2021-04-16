@@ -588,6 +588,8 @@ class SysdumpCollector(object):
         pool.apply_async(self.collect_ciliumnodes, ())
         pool.apply_async(self.collect_daemonset_yaml, ("cilium", ))
         pool.apply_async(self.collect_daemonset_yaml, ("hubble", ))
+        pool.apply_async(self.collect_deployment_yaml, ("hubble-relay", ))
+        pool.apply_async(self.collect_deployment_yaml, ("hubble-ui", ))
         pool.apply_async(self.collect_deployment_yaml, ("cilium-operator", ))
         pool.apply_async(self.collect_cilium_configmap, ())
 
