@@ -42,7 +42,8 @@ class SysdumpCollector(object):
     def __init__(
             self,
             sysdump_dir_name, since, size_limit, output, is_quick_mode,
-            cilium_labels, hubble_labels, hubble_relay_labels):
+            cilium_labels, hubble_labels, hubble_relay_labels,
+            hubble_ui_labels):
         self.sysdump_dir_name = sysdump_dir_name
         self.since = since
         self.size_limit = size_limit
@@ -51,6 +52,7 @@ class SysdumpCollector(object):
         self.cilium_labels = cilium_labels
         self.hubble_labels = hubble_labels
         self.hubble_relay_labels = hubble_relay_labels
+        self.hubble_ui_labels = hubble_ui_labels
 
     def collect_nodes_overview(self):
         log.info("collecting nodes overview ...")
@@ -602,6 +604,8 @@ class SysdumpCollector(object):
                           [])
         self.collect_logs(pool, "hubble", self.hubble_labels, node_filter)
         self.collect_logs(pool, "hubble relay", self.hubble_relay_labels,
+                          node_filter)
+        self.collect_logs(pool, "hubble ui", self.hubble_ui_labels,
                           node_filter)
 
         pool.close()
