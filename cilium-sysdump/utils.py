@@ -13,13 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import net
-
 import collections
 import logging
 import subprocess
 import sys
 import time
+
+import net
 
 FORMAT = '%(levelname)s %(message)s'
 # TODO: Make the logging level configurable.
