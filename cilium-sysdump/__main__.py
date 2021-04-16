@@ -13,19 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import defaults
-
-from _version import __version__
-import utils
-import namespace
-import logging
-import sys
 import argparse
-import sysdumpcollector
-import os
-import time
 import distutils.util
+import logging
+import os
+import sys
+import time
 
+import defaults
+import namespace
+import sysdumpcollector
+import utils
+from _version import __version__
 
 log = logging.getLogger(__name__)
 
