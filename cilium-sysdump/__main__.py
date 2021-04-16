@@ -137,9 +137,9 @@ if __name__ == '__main__':
             'pod', label=args.hubble_relay_labels, must_exist=False,
         )
         if status is None:
-            namespace.hubble_relay_labels = args.hubble_relay_labels
+            namespace.hubble_relay_ns = args.hubble_relay_ns
         else:
-            namespace.hubble_relay_labels = status[0]
+            namespace.hubble_relay_ns = status[0]
     except RuntimeError:
         namespace.hubble_relay_ns = args.hubble_relay_ns
         pass
