@@ -119,8 +119,8 @@ class SysdumpCollector(object):
         containers = utils.get_container_names_per_pod(podstatus.namespace,
                                                        podstatus.name)
         for container in containers:
-            log_file_name = "{}-{}".format(podstatus.name,
-                                           utils.get_current_time())
+            log_file_name = "{}-{}-{}".format(podstatus.name, container,
+                                              utils.get_current_time())
             command = "kubectl logs {} --container={} --timestamps=true " \
                       "--since={} --limit-bytes={} -n {} > {}/{}.log"
             cmd = command.format(
