@@ -2,53 +2,95 @@
 
 The cilium-sysdump tool collects all information in a cluster required to troubleshoot issues with Cilium and Hubble.
 
-## Prerequisites
-- Python >= 2.7
-- kubectl
+# Important
 
-## Using cilium-sysdump
+`cilium-sysdump` is currently undergoing a rewrite.
+If you're looking for a stable release and instructions, please check the [previous `README.md` file](README.prev.md).
 
-Download the latest version of the `cilium-sysdump` tool:
+# Using as a library
 
-```sh
-$ curl -sLO https://github.com/cilium/cilium-sysdump/releases/latest/download/cilium-sysdump.zip
+While a release of the new `cilium-sysdump` isn't available, you can import it from other projects by running
+
+```bash
+go get github.com/cilium/cilium-sysdump@go
 ```
 
-Make sure `kubectl` is pointing to your cluster and run `cilium-sysdump` with:
+# Installing
 
-```sh
-$ python cilium-sysdump.zip
+While a release of the new `cilium-sysdump` isn't available, you can get the binary by running
+
+```bash
+go install github.com/cilium/cilium-sysdump@go
 ```
 
-Note that by default `cilium-sysdump` will collect all the logs and for all the
-nodes in the cluster.
+Alternatively, you can run
 
-To make sure the tool collects as much relevant logs as possible, and to reduce
-the time required for this operation, it is advised to:
-
-* set the `--since` option to go back in time to when the issues started
-* set the `--nodes` option to pick only a few nodes in case the cluster has many of them
-* set the `--size-limit` option to limit the size of the log files
-
-The command with the aforementioned options set would look like:
-
-```sh
-$ python cilium-sysdump.zip --since $LOG_DURATION --nodes $NODE1_IP,$NODE2_IP
+```
+git clone https://github.com/cilium/cilium-sysdump
+cd cilium-sysdump
+git checkout go
+go run ./cmd/main.go
 ```
 
-## Options
-The following options are supported:
+# Running
 
-- `--cilium-labels CILIUM_LABELS`: labels of cilium pods running in the cluster
-- `--cilium-ns CILIUM_NS`: specify the k8s namespace Cilium is running in
-- `--hubble-labels HUBBLE_LABELS`: labels of hubble pods running in the cluster
-- `--hubble-ns HUBBLE_NS`: specify the k8s namespace Hubble is running in
-- `--hubble-relay-labels HUBBLE_RELAY_LABELS`: labels of hubble-relay pods running in the cluster
-- `--hubble-relay-ns HUBBLE_RELAY_NS`: specify the k8s namespace Hubble-Relay is running in
-- `--hubble-ui-labels HUBBLE_UI_LABELS`: labels of Hubble UI pods running in the cluster
-- `--hubble-ui-ns HUBBLE_UI_NS`: specify the k8s namespace Hubble UI is running in
-- `--nodes NODES`: only return logs for particular nodes specified by a comma separated list of node IP addresses or node names.
-- `--output OUTPUT`: output filename without .zip extension
-- `--quick QUICK`: enable quick mode. Logs and cilium bugtool output will to "false"
-- `--since SINCE`: only return logs newer than a relative duration like 5s, 2m, or 3h. Defaults to 0
-- `--size-limit SIZE_LIMIT`: size limit (bytes) for the collected logs. Defaults to 1073741824 (1GB)
+To capture a full sysdump of the Kubernetes cluster pointed at by the current context, run
+
+```
+cilium-sysdump
+```
+
+To use a particular kubeconfig file, run
+
+```
+cilium-sysdump --kubeconfig <path-to-kubeconfig>
+```
+
+To restrict the nodes targeted by gops and log collection, run
+
+```
+cilium-sysdump --nodes kubernetes-worker-1,kubernetes-worker-3
+```
+
+To get the full list of command-line flags run
+
+
+```
+cilium-sysdump --help
+Usage:
+  -cilium-labels string
+        the labels used to target Cilium pods (default "k8s-app=cilium")
+  -cilium-namespace string
+        the namespace Cilium in running in (default "kube-system")
+  -cilium-operator-labels string
+        the labels used to target Cilium operator pods (default "io.cilium/app=operator")
+  -cilium-operator-namespace string
+        the namespace Cilium operator is running in (default "kube-system")
+  -debug
+        whether to enable debug logging
+  -hubble-labels string
+        the labels used to target Hubble pods (default "k8s-app=hubble")
+  -hubble-namespace string
+        the namespace Hubble is running in (default "kube-system")
+  -hubble-relay-labels string
+        the labels used to target Hubble Relay pods (default "k8s-app=hubble-relay")
+  -hubble-relay-namespace string
+        the namespace Hubble Relay is running in (default "kube-system")
+  -hubble-ui-labels string
+        the labels used to target Hubble UI pods (default "k8s-app=hubble-ui")
+  -hubble-ui-namespace string
+        the namespace Hubble UI is running in (default "kube-system")
+  -kubeconfig string
+         (default "/Users/cilium/.kube/config")
+  -logs-limit-bytes int
+        the limit on the number of bytes to use when collecting logs (default 1073741824)
+  -logs-since-time duration
+        how far back in time to go when collecting logs (default 8760h0m0s)
+  -node-list string
+        comma-separated list of node ips or names to filter pods for which to collect gops and logs by
+  -output-filename string
+        the name of the resulting file (without extension)
+        '<ts>' can be used as the placeholder for the timestamp (default "cilium-sysdump-<ts>")
+  -quick
+        whether to enable quick mode (i.e. skip collection of cilium bugtool and logs)
+```

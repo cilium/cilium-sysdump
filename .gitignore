@@ -1,10 +1,4 @@
-# Virtual ENV files
-venv/
-
-# Generated artifacts
-cilium-sysdump/_version.py
-
-# File tytpes
+# File types
 *.json
 *.txt
 *.yaml
@@ -18,5 +12,18 @@ cilium-sysdump/_version.py
 # OS generated files
 .DS_Store
 
-# Python bytecode
-*.pyc
+# Go
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+vendor/
+/vendor/
+/Godeps/
+
+# Extracted sysdumps
+/cilium-sysdump-*/

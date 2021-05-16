@@ -1,4 +1,4 @@
- # Copyright 2017-2020 Authors of Cilium
+ # Copyright 2017-2021 Authors of Cilium
  #
  # Licensed under the Apache License, Version 2.0 (the "License");
  # you may not use this file except in compliance with the License.
@@ -12,26 +12,9 @@
  # See the License for the specific language governing permissions and
  # limitations under the License.
 
-.PHONY: build version
+SHELL := /bin/bash
 
-check: check-tools
-	flake8 $(CURDIR)/cilium-sysdump
-
-check-tools:
-	command -v flake8 >/dev/null 2>&1 || { echo "Package flake8 not installed. Aborting." >&2; exit 1; }
-
-version:
-	echo "__version__ = \"$(shell cat VERSION)-$(shell git log --pretty=format:'%h' -n 1 2>/dev/null || echo "unknown")\"" > cilium-sysdump/_version.py
-
-build: syntax-check clean check version
-	cd cilium-sysdump/ && zip -r ../cilium-sysdump.zip *
-
-syntax-check:
-	./python-syntax-check.sh cilium-sysdump
+.PHONY: clean
 
 clean:
-	rm -rf ./cilium-sysdump/*.pyc ./cilium-sysdump/__pycache__ ./cilium-sysdump/_version.py
-	rm -rf ./cilium-sysdump.zip
-
-release: build
-	./release.sh
+	rm -rf ./cilium-sysdump*.zip
