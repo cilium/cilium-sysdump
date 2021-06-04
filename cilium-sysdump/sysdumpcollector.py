@@ -591,6 +591,8 @@ class SysdumpCollector(object):
         pool.apply_async(self.collect_deployment_yaml, ("hubble-relay", ))
         pool.apply_async(self.collect_deployment_yaml, ("hubble-ui", ))
         pool.apply_async(self.collect_deployment_yaml, ("cilium-operator", ))
+        pool.apply_async(self.collect_deployment_yaml,
+                         ("clustermesh-apiserver", ))
         pool.apply_async(self.collect_cilium_configmap, ())
 
         if self.is_quick_mode:
@@ -609,6 +611,8 @@ class SysdumpCollector(object):
                           node_filter)
         self.collect_logs(pool, "hubble ui", self.hubble_ui_labels,
                           node_filter)
+        self.collect_logs(pool, "clustermesh-apiserver",
+                          "k8s-app=clustermesh-apiserver", [])
 
         pool.close()
         pool.join()
