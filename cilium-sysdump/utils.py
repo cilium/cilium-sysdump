@@ -254,11 +254,12 @@ def get_pods_status_iterator_by_labels(label_selector, node_filter,
                         namespace=split_line[4])
 
 
-def get_container_names_per_pod(pod_namespace, pod_name):
+def get_container_names_per_pod(pod_namespace, pod_name, init_containers=True):
     """Return the list of container names in the given pod"""
     cmd = "kubectl get pods {} -n {} " \
-          "-o jsonpath='{}'".format(
-              pod_name, pod_namespace, "{.spec.containers[*].name}"
+          "-o jsonpath='{} {}'".format(
+              pod_name, pod_namespace, "{.spec.containers[*].name}",
+              "{.spec.initContainers[*].name}" if init_containers else ""
           )
 
     output = ""

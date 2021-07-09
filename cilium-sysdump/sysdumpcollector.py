@@ -218,7 +218,8 @@ class SysdumpCollector(object):
 
     def collect_gops_per_pod(self, podstatus, type_of_stat):
         containers = utils.get_container_names_per_pod(podstatus.namespace,
-                                                       podstatus.name)
+                                                       podstatus.name,
+                                                       init_containers=False)
         for container in containers:
             if container == "hubble-ui":
                 continue  # gops does not run in hubble-ui container
