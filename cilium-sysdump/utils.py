@@ -262,7 +262,7 @@ def get_container_names_per_pod(pod_namespace, pod_name, init_containers=True):
               "{.spec.initContainers[*].name}" if init_containers else ""
           )
 
-    output = ""
+    output = b''
     try:
         output = subprocess.check_output(
             cmd, shell=True, stderr=subprocess.STDOUT,
@@ -282,7 +282,7 @@ def get_nodes():
     cmd = "kubectl get nodes " \
           "-o jsonpath='{}'".format("{.items[*].metadata.name}")
 
-    output = ""
+    output = b''
     try:
         output = subprocess.check_output(
             cmd, shell=True, stderr=subprocess.STDOUT,
