@@ -1,3 +1,5 @@
+**This repository is DEPRECATED**: Superseded by `cilium sysdump` from https://github.com/cilium/cilium-cli.
+
 # cilium-sysdump
 
 The cilium-sysdump tool collects all information in a cluster required to troubleshoot issues with Cilium and Hubble.
